@@ -4,5 +4,6 @@ CONFIG = {
         "tenant": "*",
         "login": "admin",
         "password": "admin"
-    }]
+    }],
+    "SQLALCHEMY_DATABASE_URI":"sqlite:////tmp/fdms.db"
 }

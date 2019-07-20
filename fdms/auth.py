@@ -18,10 +18,8 @@ def admin(func):
             tenant = tmp[0]
             login = tmp[1]
             password = request.authorization["password"]
-            print(tenant, login, password)
-
+            
             users = [ u for u in app.config["DMS_STATIC_USERS"] if u["tenant"] == tenant and u["login"] == login and u["password"] == password ]
-            print(users[0])
             utils.set_request_attr("user", users[0])
 
         except Exception as e:

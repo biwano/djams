@@ -1,16 +1,24 @@
-from flask import Flask
+import flask
+from flask_sqlalchemy import SQLAlchemy
 import fdms
 
-app = Flask(__name__)
+# Creating app
+app = flask.Flask(__name__)
 app.config.update(fdms.CONFIG)
 
+# setting up sql model
+fdms.db.app = app
+fdms.db.init_app(app)
 
+fdms.db.drop_all()
+fdms.db.create_all()
+
+# setting up views
 @app.errorhandler(401)
 def custom_401(error):
 	return fdms.custom_401(error)
 
-@app.route('/realm')
+@app.route('/tenant', methods=["POST"])
 @fdms.auth.admin
 def create_realm():
-    """Helloword."""
-    return fdms.views.realm.create()
+    return fdms.views.tenant.create()
