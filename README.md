@@ -1,0 +1,1 @@
+A simple document management system based on flask and elasticsearch
