@@ -1,1 +1,1 @@
-from . import tenant
+from . import tenantView
