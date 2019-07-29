@@ -1,6 +1,6 @@
-import json
-from fdms import auth, model, utils, AlchemyEncoder, services
-from flask import request, jsonify
+""" Tenant views implementation """
+from flask import request
+from fdms import services
 
 def create():
     """Creates a new realm"""
@@ -8,5 +8,5 @@ def create():
     tenant_id = body["tenant_id"]
     drop = body.get("drop")
     services.TenantService(tenant_id).create(drop)
-    
+
     return body

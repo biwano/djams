@@ -1,19 +1,29 @@
 """ Services shared contants """
 import json
-
 # The FDMS mapping of the schema document type
 SCHEMA_SCHEMA_DEFINITION = {
-    "schema_id": {"type": "keyword", "key": True},
+    "id": {"type": "keyword", "key": True},
     "properties": {"type": "text", "index": False},
-    "key" : {"type" : "keyword"}
 }
 # The document containng the FDMS mapping of the schema document type
 SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
-    "schema_id": "schema",
-    "properties" : SCHEMA_SCHEMA_DEFINITION
+    "id": "schema",
+    "properties" : SCHEMA_SCHEMA_DEFINITION,
 }
+# The FDMS mapping of the user document type
+USER_SCHEMA_DEFINITION = {
+    "id": {"type": "keyword", "key": True},
+}
+# The FDMS mapping of the group document type
+GROUP_SCHEMA_DEFINITION = {
+    "id": {"type": "keyword", "key": True},
+    "users": {"type": "keyword"},
+}
+
 # Base properties
 PROPERTIES_BASE = {
+    "schema_id": {"type": "keyword"},
+    "tenant_id": {"type": "keyword"},
     "local_acls": {"type": "keyword"},
     "inherit_acls": {"type": "boolean"},
     "created": {"type": "date"},

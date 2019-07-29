@@ -9,7 +9,7 @@ CONFIG = {
     "ELASTICSEARCH_HOST": "loclahost:9200",
     "LOGGING" : {
     	"SchemaService": {"level": "INFO"},
-    	"DocumentService": {"level": "DEBUG"},
+    	"DocumentService": {"level": "INFO"},
     	"EsService": {"level": "DEBUG"},
     }
 }

@@ -1,5 +1,6 @@
 """ Contains the class that manages persistence """
 import logging
+import copy
 from pprint import pformat
 import json
 from fdms import model
@@ -16,9 +17,30 @@ class EsService(object):
         return '{}.data'.format(tenant_id)
 
     @classmethod
-    def get_schema_index_name(cls, tenant_id, schema_id):
+    def get_search_index_name(cls, tenant_id, schema_id):
         """ Returns the name of a search index """
         return '{}.index.{}'.format(tenant_id, schema_id)
+
+    @classmethod
+    def get_all_search_index_name(cls, tenant_id):
+        """ Returns the name of a search index """
+        return '{}.index.*'.format(tenant_id)
+
+    def find_by_key(self, tenant_id, schema_id, key):
+        """ Returns a document by key """
+        index_name = self.get_search_index_name(tenant_id, schema_id)
+        filt = []
+        for k in key:
+            filt.append({"term": {k: key[k]}})
+        body = {"query": {"bool": {"filter": filt}}}
+        self.logger.debug("Find by key %s: %s", index_name, pformat(body))
+        result = self.es.search(index=index_name, body=body, size=1)
+        hits = result["hits"]["hits"]
+        if len(hits) == 1:
+            return hits[0]
+        if len(hits) > 1:
+            raise Exception("Multiple keys for {}/{}/{}".format(tenant_id, schema_id, pformat(key)))
+        return None
 
     def create_index(self, index_name, properties, drop):
         """ Creates an index """
@@ -41,11 +63,11 @@ class EsService(object):
 
     def index(self, doc):
         """ Indexes a document in a search index """
-        index_doc = dict(doc)
+        index_doc = copy.deepcopy(doc)
         index_doc.update(json.loads(doc["data"]))
         uuid = doc["uuid"]
         del index_doc["data"]
-        index_name = self.get_schema_index_name(doc["tenant_id"], doc["schema_id"])
+        index_name = self.get_search_index_name(doc["tenant_id"], doc["schema_id"])
         self.logger.debug("Indexing document %s/%s %s", index_name, uuid, pformat(index_doc))
         self.es.index(index=index_name, id=uuid, body=index_doc)
 

@@ -1,6 +1,7 @@
 """ Contains the class that manages schemas """
 import logging
 import json
+import copy
 from pprint import pformat
 from .. import model
 from .constants import SEARCH_MAPPING_BASE, SCHEMA_SCHEMA_DEFINITION_DOCUMENT, FDMS_MAPPING_KEYS
@@ -12,8 +13,8 @@ class SchemaService(object):
         self.tenant_id = tenant_id
         self.schema_id = schema_id
         self.es = model.es
-        self.schema_es_index = es_service.get_schema_index_name(self.tenant_id, "schema")
-        self.es_index = es_service.get_schema_index_name(self.tenant_id, self.schema_id)
+        self.schema_es_index = es_service.get_search_index_name(self.tenant_id, "schema")
+        self.es_index = es_service.get_search_index_name(self.tenant_id, self.schema_id)
         self.logger = logging.getLogger(type(self).__name__)
         self.acls = acls
 
@@ -21,6 +22,10 @@ class SchemaService(object):
     def __cache(self, schema_data):
         """ Puts a schema in cache """
         # expand schema properties before caching
+        self.logger.debug("Caching schema %s/%s: %s",
+                          self.tenant_id,
+                          self.schema_id,
+                          pformat(schema_data))
         schema_data["properties"] = json.loads(schema_data["properties"])
         SchemaService.cache[self.es_index] = schema_data
 
@@ -65,7 +70,7 @@ class SchemaService(object):
         es_service.create_index(self.es_index, mapping_properties, drop)
 
         # Save the schema document
-        schema_doc = {"schema_id": self.schema_id, "properties": json.dumps(properties)}
+        schema_doc = {"id": self.schema_id, "properties": json.dumps(properties)}
         document_service = DocumentService(self.tenant_id, "schema", self.acls)
         document_service.create(schema_doc)
 
@@ -75,7 +80,7 @@ class SchemaService(object):
     @classmethod
     def __make_es_mapping(cls, properties):
         """ Transforms a FDMS mapping into an ES mapping """
-        mapping_properties = dict(properties)
+        mapping_properties = copy.deepcopy(properties)
         mapping_properties.update(SEARCH_MAPPING_BASE)
 
         for prop in mapping_properties:
