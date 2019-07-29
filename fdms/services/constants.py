@@ -37,3 +37,11 @@ ROOT_DOCUMENT_UUID="1074e4d0f328444bb8bcf6cd4e13dbbb"
 
 # pure FDMS properties in mappings (must be removed for creating an ES mapping)
 FDMS_MAPPING_KEYS = ["key"]
+
+# acl provided by the tenant service
+TENANT_ACES = ["group:admin"]
+
+# base acl on all documents to enable all operations for the tenant and the administrators
+ACL_BASE = [
+    "group:admin:rw",
+]

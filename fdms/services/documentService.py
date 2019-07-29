@@ -1,6 +1,6 @@
 from .schemaService import SchemaService
 from .. import model
-from .constants import ROOT_DOCUMENT_UUID
+from .constants import ROOT_DOCUMENT_UUID, ACL_BASE
 from uuid import uuid4
 import datetime
 import json
@@ -10,37 +10,41 @@ from .esService import es_service
 
 
 class DocumentService():
-    def __init__(self, tenant_id, schema_id):
+    def __init__(self, tenant_id, schema_id, acls):
         self.tenant_id = tenant_id
         self.schema_id = schema_id
-        self.schema_service = SchemaService(tenant_id, schema_id)
-        self.schema = self.schema_service.getProperties()
+        self.schema_service = SchemaService(tenant_id, schema_id, acls)
+        self.schema = self.schema_service.get_properties()
         self.logger = logging.getLogger(type(self).__name__)
+        self.acls = acls
 
-    def __getPrimaryKey(self,doc):
-        primary_key = self.schema_service.getPrimaryKey()
+    def __get_primary_key(self, doc):
+        """ Returns the primary key of the document """
+        primary_key = self.schema_service.get_primary_key()
         key = {}
         for k in primary_key:
             key[k] = doc.get("k")
 
-    def ensureBaseAcl(self, local_acl):
-        # Local acls
+    @classmethod
+    def ensure_base_aces(cls, local_acl):
+        """ Ensures that base aces are in the local_acl """
         if local_acl is None:
             local_acl = []
-        for ace in DocumentService.BASE_ACL:
+        for ace in ACL_BASE:
             if ace not in local_acl:
                 local_acl.append(ace)
         return local_acl
 
     def create(self, doc, parent_uuid=None, is_acl_inherited=True, local_acl=None):
-        self.logger.debug("Creating document in schema %s/%s : %s", 
-            self.tenant_id, 
-            self.schema_id, 
-            pformat(doc))
+        """ Creates a document """
+        self.logger.debug("Creating document in schema %s/%s : %s",
+                          self.tenant_id,
+                          self.schema_id,
+                          pformat(doc))
         if parent_uuid is None:
             parent_uuid = ROOT_DOCUMENT_UUID
-        local_acl = self.ensureBaseAcl(local_acl)
-        key = self.__getPrimaryKey(doc)
+        local_acl = self.ensure_base_aces(local_acl)
+        #key = self.__get_primary_key(doc)
         uuid = uuid4().hex
         now = datetime.datetime.utcnow()
         data_doc = {
@@ -59,10 +63,4 @@ class DocumentService():
             }
 
         es_service.save(data_doc)
-
-
-DocumentService.BASE_ACL = [
-    "user:admin:rw",
-    "group:admin:rw",
-]
-
+        
