@@ -1,5 +1,7 @@
-from .. import model
 import logging
+from pprint import pformat
+import json
+from fdms import model
 
 class EsService():
     def __init__(self):
@@ -19,20 +21,24 @@ class EsService():
         self.logger.info("Creating index %s", index_name)
         self.es.indices.create(index=index_name, ignore=400)
         mapping = {"properties": properties}
-        self.logger.info("Putting mapping on index %s : %s", index_name, mapping)
+        self.logger.info("Putting mapping on index %s : %s", index_name, pformat(mapping))
         self.es.indices.put_mapping(index=index_name, body=mapping)
 
     def save(self, doc):
         index_name = self.getDataIndexName(doc["tenant_id"])
-        self.es.index(index=index_name, id=doc["uuid"], body=doc)
+        id = doc["uuid"]
+        self.logger.debug("Persisting document %s/%s %s", index_name, id, pformat(doc))
+        self.es.index(index=index_name, id=id, body=doc)
         self.index(doc)
 
     def index(self, doc):
         index_doc = dict(doc)
-        index_doc.update(doc["data"])
+        index_doc.update(json.loads(doc["data"]))
+        id = doc["uuid"]
         del index_doc["data"]
         index_name = self.getSchemaIndexName(doc["tenant_id"], doc["schema_id"])
-        self.es.index(index=index_name, id=doc["uuid"], body=doc)
+        self.logger.debug("Indexing document %s/%s %s", index_name, id, pformat(index_doc))
+        self.es.index(index=index_name, id=id, body=index_doc)
 
 
 

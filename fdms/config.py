@@ -10,6 +10,6 @@ CONFIG = {
     "LOGGING" : {
     	"SchemaService": {"level": "INFO"},
     	"DocumentService": {"level": "DEBUG"},
-    	"EsService": {"level": "INFO"},
+    	"EsService": {"level": "DEBUG"},
     }
 }

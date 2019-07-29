@@ -5,6 +5,7 @@ from uuid import uuid4
 import datetime
 import json
 import logging
+from pprint import pformat
 from .esService import es_service
 
 
@@ -32,18 +33,19 @@ class DocumentService():
         return local_acl
 
     def create(self, doc, parent_uuid=None, is_acl_inherited=True, local_acl=None):
-        self.logger.debug("Creating document in schema %s/%s : %s", self.tenant_id, self.schema_id, doc)
+        self.logger.debug("Creating document in schema %s/%s : %s", 
+            self.tenant_id, 
+            self.schema_id, 
+            pformat(doc))
         if parent_uuid is None:
             parent_uuid = ROOT_DOCUMENT_UUID
         local_acl = self.ensureBaseAcl(local_acl)
         key = self.__getPrimaryKey(doc)
         uuid = uuid4().hex
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         data_doc = {
             "tenant_id": self.tenant_id,
             "schema_id": self.schema_id,
-            "key": key,
-            "version": "0",
             "uuid": uuid,
             "document_uuid": uuid,
             "document_version_uuid": uuid,
@@ -53,7 +55,7 @@ class DocumentService():
             "is_version": False,
             "created": now,
             "updated": now,
-            "data": doc
+            "data": json.dumps(doc)
             }
 
         es_service.save(data_doc)

@@ -1,6 +1,9 @@
+""" Contains the class that manages schemas """
+import logging
+import json
+from pprint import pformat
 from .. import model
 from .constants import SEARCH_MAPPING_BASE, SCHEMA_SCHEMA_DEFINITION_DOCUMENT, FDMS_MAPPING_KEYS
-import logging
 from .esService import es_service
 
 class SchemaService():
@@ -19,6 +22,7 @@ class SchemaService():
 
     def __cache(self, schema_data):
         index_name = self.getIndexName()
+        schema_data["properties"] = json.loads(schema_data["properties"])
         SchemaService.cache[index_name] = schema_data
 
 
@@ -44,13 +48,16 @@ class SchemaService():
 
     def register(self, properties, drop = False):
         from .documentService import DocumentService
-        self.logger.info("Registering schema %s/%s with props %s", self.tenant_id, self.schema_id, properties)
+        self.logger.info("Registering schema %s/%s with props %s", 
+            self.tenant_id, 
+            self.schema_id, 
+            pformat(properties))
        
         mapping_properties = self.makeEsMapping(properties)
         index_name = self.getIndexName()
         es_service.createIndex(index_name, mapping_properties, drop)
         
-        schema_doc = {"id": self.schema_id, "properties": properties}
+        schema_doc = {"schema_id": self.schema_id, "properties": json.dumps(properties)}
         document_service = DocumentService(self.tenant_id, "schema")
         document_service.create(schema_doc)
 
