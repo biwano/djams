@@ -11,14 +11,15 @@ from .esService import es_service
 
 class DocumentService(object):
     """ Class managing documents """
-    def __init__(self, tenant_id, schema_id, acls):
+    def __init__(self, tenant_id, acls, schema_id=None):
         self.tenant_id = tenant_id
-        self.schema_id = schema_id
-        self.schema_service = SchemaService(tenant_id, schema_id, acls)
-        self.schema = self.schema_service.get_properties()
         self.logger = logging.getLogger(type(self).__name__)
         self.acls = acls
-
+        self.schema_id = schema_id
+        if schema_id:
+            self.schema_service = SchemaService(tenant_id, schema_id, acls)
+            self.schema = self.schema_service.get_properties()
+        
     def __get_primary_key(self, doc):
         """ Returns the primary key of the document """
         primary_key = self.schema_service.get_primary_key()
@@ -49,7 +50,7 @@ class DocumentService(object):
                           self.schema_id,
                           pformat(doc))
         key = self.__get_primary_key(doc)
-        found_doc = es_service.find_by_key(self.tenant_id, self.schema_id, key)
+        found_doc = es_service.get_by_key(self.tenant_id, self.schema_id, key)
         if not found_doc:
             if parent_uuid is None:
                 parent_uuid = ROOT_DOCUMENT_UUID
@@ -76,3 +77,7 @@ class DocumentService(object):
             raise Exception("Document key exists {}/{}/{}".format(self.tenant_id,
                                                                   self.schema_id,
                                                                   key))
+
+    def search(self, query=None):
+        docs = es_service.search(self.tenant_id, self.schema_id, query)
+        return docs

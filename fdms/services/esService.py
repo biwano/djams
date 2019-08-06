@@ -14,19 +14,36 @@ class EsService(object):
     @classmethod
     def get_data_index_name(cls, tenant_id):
         """ Returns the name of a data index """
-        return '{}.data'.format(tenant_id)
+        return 'tenant.{}.data'.format(tenant_id)
 
     @classmethod
     def get_search_index_name(cls, tenant_id, schema_id):
         """ Returns the name of a search index """
-        return '{}.index.{}'.format(tenant_id, schema_id)
+        return 'tenant.{}.index.{}'.format(tenant_id, schema_id)
 
     @classmethod
     def get_all_search_index_name(cls, tenant_id):
         """ Returns the name of a search index """
-        return '{}.index.*'.format(tenant_id)
+        return 'tenant.{}.index.*'.format(tenant_id)
 
-    def find_by_key(self, tenant_id, schema_id, key):
+    @classmethod
+    def get_all_tenants_search_index_name(cls):
+        """ Returns the name of a search index """
+        return 'tenant.*.index.*'
+
+    @classmethod
+    def get_search_index_name_auto(cls, tenant_id, schema_id):
+        """ Returns the name of a search index """
+        if tenant_id:
+            if schema_id:
+                return cls.get_search_index_name(tenant_id, schema_id)
+            else:
+                return cls.get_all_search_index_name(tenant_id)
+        else:
+            return cls.get_all_tenants_search_index_name()
+
+
+    def get_by_key(self, tenant_id, schema_id, key):
         """ Returns a document by key """
         index_name = self.get_search_index_name(tenant_id, schema_id)
         filt = []
@@ -41,6 +58,18 @@ class EsService(object):
         if len(hits) > 1:
             raise Exception("Multiple keys for {}/{}/{}".format(tenant_id, schema_id, pformat(key)))
         return None
+
+    def search(self, tenant_id=None, schema_id=None, query=None):
+        """ Returns a document by key """
+        index_name = self.get_search_index_name_auto(tenant_id, schema_id)
+        if query:
+            body = {"query": query}
+        else:
+            body = None
+        self.logger.debug("Find by key %s: %s", index_name, pformat(body))
+        result = self.es.search(index=index_name, body=body)
+        hits = result["hits"]["hits"]
+        return hits
 
     def create_index(self, index_name, properties, drop):
         """ Creates an index """

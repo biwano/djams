@@ -1,1 +1,2 @@
-from . import tenantView
+from . import tenantsView
+from . import documentsView

@@ -29,7 +29,12 @@ fdms.db.create_all()
 def custom_401(error):
     return fdms.custom_401(error)
 
-@app.route('/tenant', methods=["POST"])
+@app.route('/tenants', methods=["POST"])
 @fdms.auth.admin
 def create_realm():
-    return fdms.views.tenantView.create()
+    return fdms.views.tenantsView.create()
+
+@app.route('/search', methods=["GET"])
+@fdms.auth.logged_in
+def search():
+    return fdms.views.documentsView.search()
