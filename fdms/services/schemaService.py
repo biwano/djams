@@ -3,20 +3,19 @@ import logging
 import json
 import copy
 from pprint import pformat
-from .. import model
 from .constants import SEARCH_MAPPING_BASE, SCHEMA_SCHEMA_DEFINITION_DOCUMENT, FDMS_MAPPING_KEYS
-from .esService import es_service
+from .esService import EsService
 
 class SchemaService(object):
     """  Class managing schemas """
-    def __init__(self, tenant_id, schema_id, acls):
+    def __init__(self, tenant_id, schema_id, context):
         self.tenant_id = tenant_id
         self.schema_id = schema_id
-        self.es = model.es
-        self.schema_es_index = es_service.get_search_index_name(self.tenant_id, "schema")
-        self.es_index = es_service.get_search_index_name(self.tenant_id, self.schema_id)
+        self.es_service = EsService()
+        self.schema_es_index = self.es_service.get_search_index_name(self.tenant_id, "schema")
+        self.es_index = self.es_service.get_search_index_name(self.tenant_id, self.schema_id)
         self.logger = logging.getLogger(type(self).__name__)
-        self.acls = acls
+        self.context = context
 
 
     def __cache(self, schema_data):
@@ -60,23 +59,24 @@ class SchemaService(object):
         if not primary_key:
             primary_key = ["document_version_uuid"]
         return primary_key
+    
 
     def register(self, properties, drop=False):
         """ Register a schema """
         from .documentService import DocumentService
-        self.logger.info("Registering schema %s/%s with props %s",
+        self.logger.info("Registering schema %s/%s",
                          self.tenant_id,
-                         self.schema_id,
-                         pformat(properties))
+                         self.schema_id)
+        self.logger.debug(pformat(properties))
 
        # Create ES index
         mapping_properties = self.__make_es_mapping(properties)
-        es_service.create_index(self.es_index, mapping_properties, drop)
+        self.es_service.create_index(self.es_index, mapping_properties, drop)
 
         # Save the schema document
         schema_doc = {"id": self.schema_id, "properties": json.dumps(properties)}
-        document_service = DocumentService(self.tenant_id, "schema", self.acls)
-        document_service.create(schema_doc)
+        document_service = DocumentService(self.tenant_id, self.context)
+        document_service.create("schema", schema_doc)
 
         # Cache the schema document
         self.__cache(schema_doc)

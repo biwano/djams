@@ -1,6 +1,7 @@
 import flask
 import fdms
 import logging
+from config import CONFIG
 
 # setting up logging
 for clazz in fdms.CONFIG.get("LOGGING"):
@@ -12,29 +13,28 @@ for clazz in fdms.CONFIG.get("LOGGING"):
 
 # Creating app
 app = flask.Flask(__name__)
-app.config.setdefault('ELASTICSEARCH_HOST', 'localhost:9200')
-app.config.setdefault('ELASTICSEARCH_HTTP_AUTH', None)
-app.config.update(fdms.CONFIG)
+app.config.update(CONFIG)
 
-
-# setting up sql model
-fdms.db.app = app
-fdms.db.init_app(app)
-
-fdms.db.drop_all()
-fdms.db.create_all()
+# Initializing elasticsearch
+fdms.services.FlaskEs(app)
 
 # setting up views
 @app.errorhandler(401)
 def custom_401(error):
     return fdms.custom_401(error)
 
+
 @app.route('/tenants', methods=["POST"])
-@fdms.auth.admin
+@fdms.auth.is_fdms_admin
 def create_realm():
-    return fdms.views.tenantsView.create()
+    return fdms.views.TenantsView().create()
 
 @app.route('/search', methods=["GET"])
-@fdms.auth.logged_in
+@fdms.auth.is_logged_in
 def search():
-    return fdms.views.documentsView.search()
+    return fdms.views.DocumentsView().search()
+
+@app.route('/documents', methods=["POST"])
+@fdms.auth.is_logged_in
+def create():
+    return fdms.views.DocumentsView().create()

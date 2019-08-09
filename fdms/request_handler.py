@@ -1,8 +1,7 @@
 """ Various utils """
 import uuid
-from flask import request, abort
+from flask import request, abort, jsonify
 from passlib.context import CryptContext
-from fdms.services import TENANT_ACES
 import logging
 
 PASSWORD_CONTEXT = CryptContext(
@@ -13,6 +12,11 @@ PASSWORD_CONTEXT = CryptContext(
 class RequestHandler(object):
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
+        self.set_context(self.get_request_attr("context"))
+
+
+    def set_context(self, context):
+        self.context = context
 
     def encrypt_password(self, password):
         return PASSWORD_CONTEXT.encrypt(password)
@@ -32,21 +36,14 @@ class RequestHandler(object):
         self.ensure_request_attr_container()
         return request.flaskdms.get(key)
 
-    def get_user(self):
-        """Returns the logged in user"""
-        return self.get_request_attr("user")
-
-    def userIsFDMSAdmin(self):
-        return self.get_user()["isFDMSAdmin"]
-
     def get_request_tenant_id(self):
         tenant_id = self.get_request_attr("request_tenant_id")
         if not tenant_id:
-            user = self.get_user()
+            user = self.context.user
             tenant_id = user["tenant_id"]
             wanted_tenant_id = request.args.get('tenant_id')
             if wanted_tenant_id:
-                if self.userIsFDMSAdmin():
+                if self.userIsFdmsAdmin():
                     tenant_id = wanted_tenant_id
                 elif wanted_tenant_id != user["tenant_id"]:
                     abort(403)
@@ -60,11 +57,14 @@ class RequestHandler(object):
             schema_id = request.args.get('schema_id_id')
         return schema_id
 
-    def get_request_acls(self):
-        if self.userIsFDMSAdmin():
-            return TENANT_ACES
-        else:
-            return ["user:" + self.get_user()["login"]]
+    def get_body(self):
+        return request.json
 
     def get_uuid(self):
         return uuid.uuid4().hex
+
+    def send(self, data):
+        return jsonify(data)
+
+    def send_success(self, data):
+        return self.send({"result": "ok"})
