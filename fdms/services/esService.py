@@ -3,12 +3,16 @@ import logging
 import copy
 from pprint import pformat
 import json
-from fdms import model
+from elasticsearch import Elasticsearch
+from flask import current_app
+
+es_service = None
+
 
 class EsService(object):
     """ Manages persistence """
     def __init__(self):
-        self.es = model.es
+        self.es = current_app.extensions['elasticsearch']
         self.logger = logging.getLogger(type(self).__name__)
 
     @classmethod
@@ -79,7 +83,8 @@ class EsService(object):
         self.logger.info("Creating index %s", index_name)
         self.es.indices.create(index=index_name, ignore=400)
         mapping = {"properties": properties}
-        self.logger.info("Putting mapping on index %s : %s", index_name, pformat(mapping))
+        self.logger.info("Putting mapping on index %s", index_name)
+        self.logger.debug(pformat(mapping))
         self.es.indices.put_mapping(index=index_name, body=mapping)
 
     def save(self, doc):
@@ -100,4 +105,14 @@ class EsService(object):
         self.logger.debug("Indexing document %s/%s %s", index_name, uuid, pformat(index_doc))
         self.es.index(index=index_name, id=uuid, body=index_doc)
 
-es_service = EsService()
+class FlaskEs(object):
+    def __init__(self, app):
+        self.app = app
+        self.logger = logging.getLogger(type(self).__name__)
+        self.init_app(app)
+
+    def init_app(self, app):
+        app.config.setdefault('ELASTICSEARCH', {})
+        self.logger.info("Initializing Elasticsearch connection %s", pformat(app.config['ELASTICSEARCH']))
+        app.extensions['elasticsearch'] = Elasticsearch(app.config['ELASTICSEARCH'].get("hosts"))
+

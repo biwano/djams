@@ -6,26 +6,24 @@ import logging
 from pprint import pformat
 from .schemaService import SchemaService
 from .constants import ROOT_DOCUMENT_UUID, ACL_BASE
-from .esService import es_service
+from .esService import EsService
 
 
 class DocumentService(object):
     """ Class managing documents """
-    def __init__(self, tenant_id, acls, schema_id=None):
+    def __init__(self, tenant_id, context):
         self.tenant_id = tenant_id
         self.logger = logging.getLogger(type(self).__name__)
-        self.acls = acls
-        self.schema_id = schema_id
-        if schema_id:
-            self.schema_service = SchemaService(tenant_id, schema_id, acls)
-            self.schema = self.schema_service.get_properties()
+        self.context = context
+        self.es_service = EsService()
         
-    def __get_primary_key(self, doc):
+    def __get_primary_key(self, schema_id, doc):
         """ Returns the primary key of the document """
-        primary_key = self.schema_service.get_primary_key()
+        schema_service = SchemaService(self.tenant_id, schema_id, self.context)
+        primary_key = schema_service.get_primary_key()
         key = {}
         for k in primary_key:
-            if not k in doc:
+            if k not in doc:
                 raise Exception("Invalid document key {}/{}/{} expected {}".format(self.tenant_id,
                                                                                    self.schema_id,
                                                                                    pformat(doc),
@@ -43,14 +41,23 @@ class DocumentService(object):
                 local_acl.append(ace)
         return local_acl
 
-    def create(self, doc, parent_uuid=None, is_acl_inherited=True, local_acl=None):
+    def create(self, schema_id, doc, parent_uuid=None, is_acl_inherited=True, local_acl=None):
         """ Creates a document """
         self.logger.debug("Creating document in schema %s/%s : %s",
                           self.tenant_id,
-                          self.schema_id,
+                          schema_id,
                           pformat(doc))
-        key = self.__get_primary_key(doc)
-        found_doc = es_service.get_by_key(self.tenant_id, self.schema_id, key)
+
+        if parent_uuid == None:
+            if not self.context.is_tenant_admin():
+                raise Exception("Not Authorized on root document")
+        else:
+            #TODO
+            pass
+
+
+        key = self.__get_primary_key(schema_id, doc)
+        found_doc = self.es_service.get_by_key(self.tenant_id, schema_id, key)
         if not found_doc:
             if parent_uuid is None:
                 parent_uuid = ROOT_DOCUMENT_UUID
@@ -59,7 +66,7 @@ class DocumentService(object):
             now = datetime.datetime.utcnow()
             data_doc = {
                 "tenant_id": self.tenant_id,
-                "schema_id": self.schema_id,
+                "schema_id": schema_id,
                 "uuid": uuid,
                 "document_uuid": uuid,
                 "document_version_uuid": uuid,
@@ -72,12 +79,12 @@ class DocumentService(object):
                 "data": json.dumps(doc)
                 }
 
-            es_service.save(data_doc)
+            self.es_service.save(data_doc)
         else:
             raise Exception("Document key exists {}/{}/{}".format(self.tenant_id,
-                                                                  self.schema_id,
+                                                                  schema_id,
                                                                   key))
 
-    def search(self, query=None):
-        docs = es_service.search(self.tenant_id, self.schema_id, query)
+    def search(self, schema_id, query=None):
+        docs = self.es_service.search(self.tenant_id, schema_id, query)
         return docs

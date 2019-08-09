@@ -13,6 +13,7 @@ SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
 # The FDMS mapping of the user document type
 USER_SCHEMA_DEFINITION = {
     "id": {"type": "keyword", "key": True},
+    "is_tenant_admin": {"type": "boolean"},
 }
 # The FDMS mapping of the group document type
 GROUP_SCHEMA_DEFINITION = {
@@ -50,6 +51,7 @@ FDMS_MAPPING_KEYS = ["key"]
 
 # acl provided by the tenant service
 TENANT_ACES = ["group:admin"]
+
 
 # base acl on all documents to enable all operations for the tenant and the administrators
 ACL_BASE = [

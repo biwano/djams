@@ -1,12 +1,14 @@
 """ Tenant views implementation """
-from flask import request
-from fdms import services
+import fdms
 
-def create():
-    """Creates a new realm"""
-    body = request.json
-    tenant_id = body["tenant_id"]
-    drop = body.get("drop")
-    services.TenantService(tenant_id).create(drop)
+class TenantsView(fdms.RequestHandler):
+    def create(self):
+        """Creates a new realm"""
+        super().__init__()
+        body = self.get_body()
+        tenant_id = body.get("tenant_id")
+        drop = body.get("drop")
+        
+        fdms.services.TenantService(tenant_id, self.context).create(drop)
 
-    return body
+        return self.send_success(body)

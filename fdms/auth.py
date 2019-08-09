@@ -1,49 +1,71 @@
 import traceback
 from flask import current_app as app
 from flask import abort, request, Response
-import fdms.utils as utils
+import fdms
+from pprint import pformat
+from functools import wraps
+
+class AuthService(fdms.RequestHandler):
+    def __init__(self):
+        super().__init__()
+        self.authenticate()
 
 
-def get_user():
-    """Returns the logged in user"""
-    return utils.get_user()
-
-def authenticate():
-    try:
+    def static_auth(self, options):
         http_username = request.authorization["username"]
         tmp = http_username.split("|")
         tenant = tmp[0]
-        login = tmp[1]
+        user_id = tmp[1]
         password = request.authorization["password"]
-        
-        users = [ u for u in app.config["DMS_STATIC_USERS"] if u["tenant_id"] == tenant and u["login"] == login and u["password"] == password ]
-        user = users[0]
-        utils.set_request_attr("user", user)
 
-        user["isFDMSAdmin"] = True if (user["tenant_id"] =="*") else False
-        return get_user()
-    except:
-        traceback.print_exc()
-        abort(401)
-        return None
+        users = [u for u in app.config["DMS_STATIC_USERS"] if u["tenant_id"] == tenant and u["user_id"] == user_id and u["password"] == password]
+        return users[0] if len(users) > 0 else None
 
-def admin(func):
+    def authenticate(self):
+
+        try:
+            self.logger.debug("Trying authentication")
+            print(pformat(self.logger))
+            for method in app.config["AUTHENTICATION"]:
+                func = getattr(self, "{}_auth".format(method["type"]))
+                user = func(method)
+                if user: 
+                    context = fdms.Context(user)
+                    self.set_request_attr("context", context)
+                    self.set_context(context)
+                    self.logger.debug("Authenticated (%s) %s", method["type"], str(context))
+                    break
+            
+            if not context:
+                self.logger.debug("Authenticated failed")
+                
+            return context
+        except:
+            traceback.print_exc()
+            abort(401)
+            return None
+
+
+def is_fdms_admin(func):
     """Decorator for app admin authorized views"""
+    @wraps(func)
     def admin_wrapper():
+        print("a")
         """Wrapper"""
-        user = authenticate()
-        if user and  user["tenant_id"] == "*":
+        service = AuthService()
+        if service.context.is_fdms_admin():
             return func()
         else:
             abort(403)
             return None
     return admin_wrapper
 
-def logged_in(func):
+def is_logged_in(func):
     """Decorator for app logged_in authorized views"""
+    @wraps(func)
     def logged_in_wrapper():
         """Wrapper"""
-        authenticate()
+        AuthService()
         return func()
     return logged_in_wrapper
 

@@ -2,7 +2,7 @@
 CONFIG = {
     "DMS_STATIC_USERS": [{
         "tenant_id": "*",
-        "login": "admin",
+        "user_id": "admin",
         "password": "admin"
     }],
     "SQLALCHEMY_DATABASE_URI": "sqlite:////tmp/fdms.db",
