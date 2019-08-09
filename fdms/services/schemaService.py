@@ -40,6 +40,10 @@ class SchemaService(object):
         # get from constants if it is the schema schema (because it may not be indexed yet)
         if self.schema_id == "schema" and schema is None:
             schema = SCHEMA_SCHEMA_DEFINITION_DOCUMENT
+        if schema is None:
+            self.logger.info("Unknown shema %s/%s",
+                         self.tenant_id,
+                         self.schema_id)
         return schema
 
     def get_properties(self):
