@@ -7,7 +7,7 @@ CONFIG = {
     }],
     "SQLALCHEMY_DATABASE_URI": "sqlite:////tmp/fdms.db",
     "ELASTICSEARCH": {"hosts": ["localhost"]},
-    "AUTHENTICATION": [{"type": "static"}],
+    "AUTHENTICATION": [{"type": "static", "on_sucess": "set_cookie"}],
     "LOGGING" : {
         "SchemaService": {"level": "INFO"},
         "DocumentService": {"level": "INFO"},

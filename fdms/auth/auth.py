@@ -11,6 +11,19 @@ class AuthService(fdms.RequestHandler):
         self.authenticate()
 
 
+    def cookie_auth(self, options):
+        http_username = request.authorization["username"]
+        tmp = http_username.split("|")
+        tenant = tmp[0]
+        user_id = tmp[1]
+        password = request.authorization["password"]
+
+        users = [u for u in app.config["DMS_STATIC_USERS"] if u["tenant_id"] == tenant and u["user_id"] == user_id and u["password"] == password]
+        return users[0] if len(users) > 0 else None
+
+    def set_cookie(self, options):
+        resp.set_cookie('userID', user)
+
     def static_auth(self, options):
         http_username = request.authorization["username"]
         tmp = http_username.split("|")
@@ -33,6 +46,10 @@ class AuthService(fdms.RequestHandler):
                     context = fdms.Context(user)
                     self.set_request_attr("context", context)
                     self.set_context(context)
+                    if (method.get("callback")):
+                        func = getattr(self, method.get("callback"))
+                        func(context)
+
                     self.logger.debug("Authenticated (%s) %s", method["type"], str(context))
                     break
             
@@ -42,7 +59,7 @@ class AuthService(fdms.RequestHandler):
             return context
         except:
             traceback.print_exc()
-            abort(401)
+            abort(401, "Cannot authenticate request")
             return None
 
 
@@ -71,6 +88,7 @@ def is_logged_in(func):
 
 def custom_401(error):
     """Not authorized response"""
+    print(error)
     return Response('Access denied'
                     , 401
                     , {'WWW-Authenticate':'Basic realm="Login Required"'})

@@ -70,7 +70,7 @@ class EsService(object):
             body = {"query": query}
         else:
             body = None
-        self.logger.debug("Find by key %s: %s", index_name, pformat(body))
+        self.logger.debug("Search %s: %s", index_name, pformat(body))
         result = self.es.search(index=index_name, body=body)
         hits = result["hits"]["hits"]
         return hits

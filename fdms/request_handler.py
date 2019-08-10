@@ -43,7 +43,7 @@ class RequestHandler(object):
             tenant_id = user["tenant_id"]
             wanted_tenant_id = request.args.get('tenant_id')
             if wanted_tenant_id:
-                if self.userIsFdmsAdmin():
+                if self.context.is_fdms_admin():
                     tenant_id = wanted_tenant_id
                 elif wanted_tenant_id != user["tenant_id"]:
                     abort(403)

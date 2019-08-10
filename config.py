@@ -4,7 +4,7 @@ CONFIG.update({
     "LOGGING" : {
         "SchemaService": {"level": "INFO"},
         "DocumentService": {"level": "INFO"},
-        "EsService": {"level": "INFO"},
+        "EsService": {"level": "DEBUG"},
         "FlaskEs": {"level": "INFO"},
         "AuthService": {"level": "DEBUG"},
     }
