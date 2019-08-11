@@ -49,3 +49,8 @@ def search():
 @fdms.auth.is_logged_in
 def create():
     return fdms.views.DocumentsView().create()
+
+@app.route('/user', methods=["GET"])
+@fdms.auth.is_logged_in
+def get_user():
+    return fdms.views.AuthView().get_logged_in_user()
