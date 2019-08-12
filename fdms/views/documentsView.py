@@ -1,4 +1,5 @@
 """ Tenant views implementation """
+from flask import request
 import fdms
 
 class DocumentsView(fdms.RequestHandler):
@@ -10,6 +11,15 @@ class DocumentsView(fdms.RequestHandler):
     def search(self):
         """Searches a document"""
         docs = fdms.services.DocumentService(self.tenant_id, self.context).search(self.schema_id)
+        return self.send(docs)
+
+    def filter(self):
+        """Searches a document"""
+        filt = []
+        for arg in request.args:
+            filt.append({ "term" : { arg : request.args[arg] }})
+        docs = fdms.services.DocumentService(self.tenant_id, self.context).search(self.schema_id,
+            query={ "bool": { "filter": filt  } })
         return self.send(docs)
 
     def create(self):

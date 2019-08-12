@@ -87,4 +87,5 @@ class DocumentService(object):
 
     def search(self, schema_id, query=None):
         docs = self.es_service.search(self.tenant_id, schema_id, query)
+        docs = [doc["_source"] for doc in docs]
         return docs

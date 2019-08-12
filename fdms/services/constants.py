@@ -20,6 +20,12 @@ GROUP_SCHEMA_DEFINITION = {
     "id": {"type": "keyword", "key": True},
     "users": {"type": "keyword"},
 }
+# The FDMS mapping of the group document type
+TENANT_SCHEMA_DEFINITION = {
+    "id": {"type": "keyword", "key": True},
+}
+# Master tenant (contains metadata about other tenants)
+TENANT_MASTER = "fdms"
 
 # Base properties
 PROPERTIES_BASE = {

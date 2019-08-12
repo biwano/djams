@@ -2,7 +2,12 @@
 from . import SchemaService
 from .esService import EsService
 from .documentService import DocumentService
-from .constants import DATA_MAPPING, SCHEMA_SCHEMA_DEFINITION, USER_SCHEMA_DEFINITION, GROUP_SCHEMA_DEFINITION
+from .constants import (DATA_MAPPING, 
+SCHEMA_SCHEMA_DEFINITION, 
+USER_SCHEMA_DEFINITION, 
+GROUP_SCHEMA_DEFINITION,
+TENANT_SCHEMA_DEFINITION,
+TENANT_MASTER)
 
 class TenantService(object):
     """ Class managing tenants """
@@ -19,12 +24,20 @@ class TenantService(object):
         SchemaService(self.tenant_id, "schema", self.context).register(SCHEMA_SCHEMA_DEFINITION, drop)
         SchemaService(self.tenant_id, "user", self.context).register(USER_SCHEMA_DEFINITION, drop)
         SchemaService(self.tenant_id, "group", self.context).register(GROUP_SCHEMA_DEFINITION, drop)
+        if self.tenant_id == TENANT_MASTER:
+            SchemaService(self.tenant_id, "tenant", self.context).register(TENANT_SCHEMA_DEFINITION, drop)
 
-        DocumentService(self.tenant_id, self.context).create("user", {
+        document_service = DocumentService(self.tenant_id, self.context)
+        document_service.create("user", {
             "id": "admin",
             "is_tenant_admin": True
             })
-        DocumentService(self.tenant_id, self.context).create("group", {
+        document_service.create("group", {
             "id": "admin",
             "users": ["admin"]
             })
+        # Registering tenant in tenant master
+        document_service = DocumentService(TENANT_MASTER, self.context)
+        document_service.create("tenant", {
+                "id": self.tenant_id,
+                })

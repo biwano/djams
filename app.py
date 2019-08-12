@@ -19,7 +19,7 @@ app = flask.Flask(__name__)
 app.config.update(CONFIG)
 
 # Initializing cors
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Initializing session
 SESSION_TYPE = 'filesystem'
@@ -44,6 +44,11 @@ def create_realm():
 @fdms.auth.is_logged_in
 def search():
     return fdms.views.DocumentsView().search()
+
+@app.route('/filter', methods=["GET"])
+@fdms.auth.is_logged_in
+def filter():
+    return fdms.views.DocumentsView().filter()
 
 @app.route('/documents', methods=["POST"])
 @fdms.auth.is_logged_in
