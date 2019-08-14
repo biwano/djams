@@ -66,12 +66,12 @@ class AuthService(fdms.RequestHandler):
 def is_fdms_admin(func):
     """Decorator for app admin authorized views"""
     @wraps(func)
-    def admin_wrapper():
+    def admin_wrapper(**args):
         print("a")
         """Wrapper"""
         service = AuthService()
         if service.context.is_fdms_admin():
-            return func()
+            return func(**args)
         else:
             abort(403)
             return None

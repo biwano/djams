@@ -66,5 +66,5 @@ class RequestHandler(object):
     def send(self, data):
         return jsonify(data)
 
-    def send_success(self, data):
+    def send_success(self):
         return self.send({"result": "ok"})

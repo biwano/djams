@@ -11,11 +11,12 @@ from .esService import EsService
 
 class DocumentService(object):
     """ Class managing documents """
-    def __init__(self, tenant_id, context):
+    def __init__(self, tenant_id, context, refresh = False):
         self.tenant_id = tenant_id
         self.logger = logging.getLogger(type(self).__name__)
         self.context = context
-        self.es_service = EsService()
+        self.refresh = refresh
+        self.es_service = EsService(refresh)
         
     def __get_primary_key(self, schema_id, doc):
         """ Returns the primary key of the document """
@@ -41,6 +42,32 @@ class DocumentService(object):
                 local_acl.append(ace)
         return local_acl
 
+
+
+    def _key_exists(self, schema_id, key):
+        """ Checks if a key exists without authorization check"""
+        return self.es_service.get_by_key(self.tenant_id, schema_id, key)
+
+    def contextualize_query(self, query, context):
+        acl_filter = []
+        for ace in context.acl:
+            acl_filter.append({"prefix" : {"acl" : ace}})
+
+        query = {"bool":{"must" : query,
+                         "should": acl_filter}
+                }
+        
+    def get_by_key(self, schema_id, key):
+        """ Returns a document by key with authorization check"""
+        val = self.es_service.get_by_key(self.tenant_id, schema_id, key)
+        if val:
+            val = val["_source"]
+        return val
+
+    def delete_by_key(self, schema_id, key):
+        doc = self.get_by_key(schema_id, key)
+        return self.es_service.delete(doc)
+
     def create(self, schema_id, doc, parent_uuid=None, is_acl_inherited=True, local_acl=None):
         """ Creates a document """
         self.logger.debug("Creating document in schema %s/%s : %s",
@@ -57,8 +84,8 @@ class DocumentService(object):
 
 
         key = self.__get_primary_key(schema_id, doc)
-        found_doc = self.es_service.get_by_key(self.tenant_id, schema_id, key)
-        if not found_doc:
+        exists = self._key_exists(schema_id, key)
+        if not exists:
             if parent_uuid is None:
                 parent_uuid = ROOT_DOCUMENT_UUID
             local_acl = self.ensure_base_aces(local_acl)
@@ -85,7 +112,8 @@ class DocumentService(object):
                                                                   schema_id,
                                                                   key))
 
-    def search(self, schema_id, query=None):
+    def search(self, schema_id=None, query=None):
+        # TODO: manage access rights
         docs = self.es_service.search(self.tenant_id, schema_id, query)
         docs = [doc["_source"] for doc in docs]
         return docs

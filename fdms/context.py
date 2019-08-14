@@ -16,6 +16,8 @@ class Context:
             else:
                 user["is_tenant_admin"] = False
             #TODO: calculate ACLs
+            self.acl = [ "group:admin"]
+
         self.user = user
 
     def __str__(self):

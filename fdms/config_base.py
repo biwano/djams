@@ -14,5 +14,10 @@ CONFIG = {
         "EsService": {"level": "INFO"},
         "FlaskEs": {"level": "INFO"},
         "AuthService": {"level": "INFO"},
+    },
+    "CACHE" : {
+            'cache.type': 'file',
+            'cache.data_dir': '/tmp/cache/data',
+            'cache.lock_dir': '/tmp/cache/lock'
     }
 }
