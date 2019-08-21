@@ -6,6 +6,7 @@ import json
 from elasticsearch import Elasticsearch
 from flask import current_app
 from .constants import (DATA_MAPPING)
+from .documentHelpers import ensure_aces, as_term_filter
 
 #es_service = None
 
@@ -15,7 +16,7 @@ class EsService(object):
     def __init__(self, refresh=False):
         self.es = current_app.extensions['elasticsearch']
         self.logger = logging.getLogger(type(self).__name__)
-        self.refresh=refresh
+        self.refresh = refresh
 
     @classmethod
     def get_data_index_name(cls, tenant_id):
@@ -54,20 +55,25 @@ class EsService(object):
             filt.append({"term": {k: key[k]}})
         return filt
 
-    def get_by_key(self, tenant_id, schema_id, key):
-        """ Returns a document by key """
-        index_name = self.get_search_index_name(tenant_id, schema_id)
-        
-        body = {"query": {"bool": {"filter": self.get_by_key_filter(key)}}}
-        self.logger.debug("Find by key %s: %s", index_name, pformat(body))
-        result = self.es.search(index=index_name, body=body, size=1)
+    def get_one(self, tenant_id, query):
+        index_name = self.get_all_search_index_name(tenant_id)
+        result = self.es.search(index=index_name, body={"query": query})
         hits = result["hits"]["hits"]
+        self.logger.debug("Get one %s: %s", index_name, pformat(query))
         if len(hits) == 1:
+            self.logger.debug("Found: %s", pformat(hits[0]))
             return hits[0]
         if len(hits) > 1:
-            raise Exception("Multiple keys for {}/{}/{}".format(tenant_id, schema_id, pformat(key)))
+            raise Exception("Multiple hits for {}/{}".format(index_name, pformat(query)))
         return None
+    
+    def get_by_uuid(self, tenant_id, uuid):
+        # Returns a document by uuid        
+        query = as_term_filter({"document_uuid": uuid,
+                                "is_version": False})
 
+        return self.get_one(tenant_id, query)
+    
     def search(self, tenant_id=None, schema_id=None, query=None):
         """ Returns a document by key """
         index_name = self.get_search_index_name_auto(tenant_id, schema_id)
@@ -111,23 +117,38 @@ class EsService(object):
         self.logger.debug("Deleting document %s/%s refresh = %s", index_name, uuid, self.refresh)
         self.es.delete(index=index_name, id=uuid, refresh=self.refresh)
         
-    def save(self, doc):
+    def save(self, doc, parent=None):
         """ Indexes a document in a data index """
         index_name = self.get_data_index_name(doc["tenant_id"])
         uuid = doc["document_version_uuid"]
         self.logger.debug("Persisting document %s/%s %s refresh = %s", index_name, uuid, pformat(doc), self.refresh)
         self.es.index(index=index_name, id=uuid, body=doc)
-        self.index(doc)
+        return self.index(doc, parent)
 
-    def index(self, doc):
+    def index(self, doc, parent=None):
         """ Indexes a document in a search index """
         index_doc = copy.deepcopy(doc)
         index_doc.update(json.loads(doc["data"]))
         uuid = doc["document_version_uuid"]
+        # computing acls
+        if parent == None:
+            if index_doc["is_root"]:
+                index_doc["path"] = "/"
+                index_doc["acl"] = index_doc["local_acl"]
+            else:
+                parent = self.get_by_uuid(doc["tenant_id"], doc["parent_uuid"])["_source"]
+                if parent["is_root"]:
+                    index_doc["path"] = "/" + index_doc["id"]
+                else:
+                    index_doc["path"] = parent["path"] + "/" + index_doc["id"]
+                index_doc["acl"] = ensure_aces(index_doc["local_acl"], parent["acl"])
+
         del index_doc["data"]
         index_name = self.get_search_index_name(doc["tenant_id"], doc["schema_id"])
+
         self.logger.debug("Indexing document %s/%s %s refresh = %s", index_name, uuid, pformat(index_doc), self.refresh)
         self.es.index(index=index_name, id=uuid, body=index_doc, refresh=self.refresh)
+        return index_doc
 
     def unindex(self, doc):
         """ de indexes a document"""

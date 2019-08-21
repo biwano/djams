@@ -5,8 +5,9 @@ import json
 import logging
 from pprint import pformat
 from .schemaService import SchemaService
-from .constants import ROOT_DOCUMENT_UUID, ACL_BASE
+from .constants import ROOT_DOCUMENT, ACL_BASE
 from .esService import EsService
+from .documentHelpers import ensure_aces, as_term_filter
 
 
 class DocumentService(object):
@@ -18,102 +19,130 @@ class DocumentService(object):
         self.refresh = refresh
         self.es_service = EsService(refresh)
         
-    def __get_primary_key(self, schema_id, doc):
-        """ Returns the primary key of the document """
-        schema_service = SchemaService(self.tenant_id, schema_id, self.context)
-        primary_key = schema_service.get_primary_key()
-        key = {}
-        for k in primary_key:
-            if k not in doc:
-                raise Exception("Invalid document key {}/{}/{} expected {}".format(self.tenant_id,
-                                                                                   self.schema_id,
-                                                                                   pformat(doc),
-                                                                                   pformat(primary_key)))
-            key[k] = doc[k]
-        return key
-
     @classmethod
     def ensure_base_aces(cls, local_acl):
         """ Ensures that base aces are in the local_acl """
-        if local_acl is None:
-            local_acl = []
-        for ace in ACL_BASE:
-            if ace not in local_acl:
-                local_acl.append(ace)
-        return local_acl
+        return ensure_aces(local_acl, ACL_BASE)
 
-
-
-    def _key_exists(self, schema_id, key):
-        """ Checks if a key exists without authorization check"""
-        return self.es_service.get_by_key(self.tenant_id, schema_id, key)
-
-    def contextualize_query(self, query, context):
+    def contextualize_query(self, query):
         acl_filter = []
-        for ace in context.acl:
+        for ace in self.context.acl:
             acl_filter.append({"prefix" : {"acl" : ace}})
 
         query = {"bool":{"must" : query,
                          "should": acl_filter}
                 }
-        
-    def get_by_key(self, schema_id, key):
-        """ Returns a document by key with authorization check"""
-        val = self.es_service.get_by_key(self.tenant_id, schema_id, key)
-        if val:
-            val = val["_source"]
-        return val
+        return query
 
-    def delete_by_key(self, schema_id, key):
-        doc = self.get_by_key(schema_id, key)
+    def as_source(self, result):
+        if result:
+            result = result["_source"]
+        return result
+
+    def get_one(self, query, with_context=True):
+        if with_context:
+            query = self.contextualize_query(query)
+        hit = self.es_service.get_one(self.tenant_id, query=query)
+        return self.as_source(hit)
+
+    def get_root(self, with_context=True):
+        query = as_term_filter({"is_root": True, "schema_id": "root", "id": "root", "is_version": False})
+        return self.get_one(query, with_context=with_context)
+
+#    def get_root_uuid(self):
+#        return self._get_root()["document_uuid"]
+
+    def get_child_by_id(self, doc, child_id, with_context=True):
+        """ Checks if a key exists without authorization check"""
+        doc = self.doc_from_any(doc, with_context)
+        query = as_term_filter({
+            "parent_uuid": doc["document_uuid"],
+            "id": child_id,
+            "is_version": False})
+        return self.get_one(query, with_context=with_context)
+
+    def delete_child_by_id(self, doc, child_id, with_context=True):
+        doc = self.get_child_by_id(doc, child_id)
         return self.es_service.delete(doc)
 
-    def create(self, schema_id, doc, parent_uuid=None, is_acl_inherited=True, local_acl=None):
+    def get_by_path(self, path, with_context=True):
+        query = as_term_filter({"path": path, "is_version": False})
+        return self.get_one(query, with_context=with_context)
+
+    def get_by_uuid(self, uuid, with_context=True):
+        query = as_term_filter({"document_uuid": uuid, "is_version": False})
+        return self.get_one(query, with_context=with_context)
+
+    def doc_from_any(self, thing, with_context=True):
+        if type(thing) == dict:
+            return thing
+        elif thing.startswith("/"):
+            return self.get_by_path(thing, with_context=with_context)
+        else:
+            return self.get_by_uuid(thing, with_context=with_context)
+
+
+    def create(self, schema_id, doc, parent, is_acl_inherited=True, local_acl=None):
         """ Creates a document """
         self.logger.debug("Creating document in schema %s/%s : %s",
                           self.tenant_id,
                           schema_id,
                           pformat(doc))
 
-        if parent_uuid == None:
-            if not self.context.is_tenant_admin():
-                raise Exception("Not Authorized on root document")
+        uuid = uuid4().hex
+
+        if not doc["id"]:
+            doc["id"] = uuid
+
+        # Compute Parent
+        if parent == None:
+            if self.context.is_tenant_admin():
+                is_root = True
+                exists = bool(self.get_root(with_context=False))
+                parent_uuid = None
+            else:
+                raise Exception("Only tenant admins can create root documents")
+
+
         else:
-            #TODO
-            pass
+            is_root = False
+            parent = self.doc_from_any(parent)
+            exists = self.get_child_by_id(parent, doc["id"], with_context=False)
+            exists = True if exists is not None else False
+            parent_uuid = parent["document_uuid"]
+        # TODO: Check write access on parent
 
-
-        key = self.__get_primary_key(schema_id, doc)
-        exists = self._key_exists(schema_id, key)
+        # check unicity
         if not exists:
-            if parent_uuid is None:
-                parent_uuid = ROOT_DOCUMENT_UUID
+            # Compute acl
             local_acl = self.ensure_base_aces(local_acl)
-            uuid = uuid4().hex
+            
             now = datetime.datetime.utcnow()
             data_doc = {
                 "tenant_id": self.tenant_id,
                 "schema_id": schema_id,
-                "uuid": uuid,
                 "document_uuid": uuid,
                 "document_version_uuid": uuid,
                 "parent_uuid": parent_uuid,
                 "local_acl": local_acl,
                 "is_acl_inherited": is_acl_inherited,
+                "is_root": is_root,
                 "is_version": False,
                 "created": now,
                 "updated": now,
                 "data": json.dumps(doc)
                 }
 
-            self.es_service.save(data_doc)
+            return self.es_service.save(data_doc)
         else:
-            raise Exception("Document key exists {}/{}/{}".format(self.tenant_id,
-                                                                  schema_id,
-                                                                  key))
-
-    def search(self, schema_id=None, query=None):
-        # TODO: manage access rights
+            raise Exception("Document id exists in this tree or duplicate root document {}/{}".format(self.tenant_id,
+                                                                  doc["id"]))
+    def fdms_search(self, schema_id=None, query=None):
         docs = self.es_service.search(self.tenant_id, schema_id, query)
         docs = [doc["_source"] for doc in docs]
         return docs
+
+    def search(self, schema_id=None, query=None, with_context=True):
+        if with_context:
+            query = self.contextualize_query(query)
+        return self.fdms_search(schema_id, query)

@@ -3,7 +3,10 @@ import logging
 import json
 import copy
 from pprint import pformat
-from .constants import SEARCH_MAPPING_BASE, SCHEMA_SCHEMA_DEFINITION_DOCUMENT, FDMS_MAPPING_KEYS
+from .constants import (SEARCH_MAPPING_BASE,
+    SCHEMA_SCHEMA_DEFINITION_DOCUMENT,
+    ROOT_SCHEMA_DEFINITION_DOCUMENT,
+    FDMS_MAPPING_KEYS)
 from .esService import EsService
 from .cacheService import get_cache
 
@@ -21,16 +24,6 @@ class SchemaService(object):
         self.refresh = refresh
 
 
-    def __cache(self, schema_data):
-        """ Puts a schema in cache """
-        # expand schema properties before caching
-        self.logger.debug("Caching schema %s/%s: %s",
-                          self.tenant_id,
-                          self.schema_id,
-                          pformat(schema_data))
-        schema_data["properties"] = json.loads(schema_data["properties"])
-        SchemaService.cache[self.es_index] = schema_data
-
     def __get_document(self):
         """ Returns the document containg the schema """
         def __get_document_no_cache():
@@ -47,15 +40,21 @@ class SchemaService(object):
             #schema = SchemaService.cache.get(self.es_index)
             #if debug_schema("cache"):
             #    return schema
-                
-            schema = DocumentService(self.tenant_id, self.context).get_by_key("schema", {"id": "schema"})
-            if debug_schema("database"):
-                schema["properties"] = json.loads(schema["properties"])
-                return schema
+            schema = None
+            try:    
+                schema = DocumentService(self.tenant_id, self.context).get_by_key("schema", {"id": "schema"})
+                if debug_schema("database"):
+                    schema["properties"] = json.loads(schema["properties"])
+                    return schema
+            except:
+                pass
 
             # get from constants if it is the schema schema (because it may not be indexed yet)
             if self.schema_id == "schema" and schema is None:
                 schema = SCHEMA_SCHEMA_DEFINITION_DOCUMENT
+            # get from constants if it is the root schema (because it can exist as a virtual schema)
+            if self.schema_id == "root" and schema is None:
+                schema = ROOT_SCHEMA_DEFINITION_DOCUMENT
             if debug_schema("static definition"):
                 return schema
 
@@ -73,14 +72,14 @@ class SchemaService(object):
         properties = self.get_properties()
         primary_key = []
         for prop in properties:
-            if properties[prop].get("key") != None:
+            if properties[prop].get("key") is not None:
                 primary_key.append(prop)
         if not primary_key:
-            primary_key = ["document_version_uuid"]
+            primary_key = ["id"]
         return primary_key
-    
 
-    def register(self, properties, drop=False):
+
+    def register(self, properties, drop=False, persist=True):
         """ Register a schema """
         from .documentService import DocumentService
         self.logger.info("Registering schema %s/%s",
@@ -92,13 +91,12 @@ class SchemaService(object):
         mapping_properties = self.__make_es_mapping(properties)
         self.es_service.create_index(self.es_index, mapping_properties, drop)
 
-        # Save the schema document
-        schema_doc = {"id": self.schema_id, "properties": json.dumps(properties)}
-        document_service = DocumentService(self.tenant_id, self.context, refresh=self.refresh)
-        document_service.create("schema", schema_doc)
+        # Save the schema document*
+        if persist:
+            schema_doc = {"id": self.schema_id, "properties": json.dumps(properties)}
+            document_service = DocumentService(self.tenant_id, self.context, refresh=self.refresh)
+            document_service.create("schema", schema_doc, parent=document_service.get_root())
 
-        # Cache the schema document
-        self.__cache(schema_doc)
 
     def delete(self):
         self.es_service.delete_index(self.es_index)

@@ -8,7 +8,7 @@ class Context:
         if user.get("tenant_id") == "*":
             user["is_fdms_admin"] = True
             user["is_tenant_admin"] = True
-            self.acls = TENANT_ACES
+            self.acl = TENANT_ACES
         else:
             user["is_fdms_admin"] = False
             if user.get("is_tenant_admin"):

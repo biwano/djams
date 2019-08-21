@@ -2,27 +2,35 @@
 import json
 # The FDMS mapping of the schema document type
 SCHEMA_SCHEMA_DEFINITION = {
-    "id": {"type": "keyword", "key": True},
     "properties": {"type": "text", "index": False},
-}
-# The document containng the FDMS mapping of the schema document type
-SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
-    "id": "schema",
-    "properties" : SCHEMA_SCHEMA_DEFINITION,
+
 }
 # The FDMS mapping of the user document type
 USER_SCHEMA_DEFINITION = {
-    "id": {"type": "keyword", "key": True},
     "is_tenant_admin": {"type": "boolean"},
 }
 # The FDMS mapping of the group document type
 GROUP_SCHEMA_DEFINITION = {
-    "id": {"type": "keyword", "key": True},
     "users": {"type": "keyword"},
 }
 # The FDMS mapping of the group document type
+FOLDER_SCHEMA_DEFINITION = {
+}
+# The FDMS mapping of the group document type
+ROOT_SCHEMA_DEFINITION = {
+}
+# The FDMS mapping of the group document type
 TENANT_SCHEMA_DEFINITION = {
-    "id": {"type": "keyword", "key": True},
+}
+# The document containing the FDMS mapping of the schema document type
+SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
+    "id": "schema",
+    "properties" : SCHEMA_SCHEMA_DEFINITION,
+}
+# The document containing the FDMS mapping of the folder document type
+ROOT_SCHEMA_DEFINITION_DOCUMENT = {
+    "id": "root",
+    "properties" : ROOT_SCHEMA_DEFINITION,
 }
 # Master tenant (contains metadata about other tenants)
 TENANT_MASTER = "fdms"
@@ -33,11 +41,13 @@ PROPERTIES_BASE = {
     "tenant_id": {"type": "keyword"},
     "local_acls": {"type": "keyword"},
     "inherit_acls": {"type": "boolean"},
+    "is_root": {"type": "boolean"},
     "created": {"type": "date"},
     "updated": {"type": "date"},
     "document_uuid": {"type": "keyword"},
     "document_version_uuid": {"type": "keyword"},
     "parent_uuid": {"type": "keyword"},
+    "id": {"type": "keyword"},
 }
 # Mapping of the data indexes
 DATA_MAPPING = dict(PROPERTIES_BASE)
@@ -47,10 +57,15 @@ DATA_MAPPING.update({
 # Base mapping of the search indexes
 SEARCH_MAPPING_BASE = dict(PROPERTIES_BASE)
 SEARCH_MAPPING_BASE.update({
-    "acls": {"type": "keyword"}
+    "acls": {"type": "keyword"},
+    "path": {"type": "keyword"}
 })
 # Root document uuid
-ROOT_DOCUMENT_UUID="1074e4d0f328444bb8bcf6cd4e13dbbb"
+ROOT_DOCUMENT = { 
+  "document_uuid": "1074e4d0f328444bb8bcf6cd4e13dbbb",
+  "acls": [],
+  "path": "/",
+}
 
 # pure FDMS properties in mappings (must be removed for creating an ES mapping)
 FDMS_MAPPING_KEYS = ["key"]
