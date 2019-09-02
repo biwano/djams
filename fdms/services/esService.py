@@ -7,7 +7,7 @@ from elasticsearch import Elasticsearch
 from flask import current_app
 from .constants import (DATA_MAPPING)
 from .documentHelpers import ensure_aces, as_term_filter
-
+import hashlib
 #es_service = None
 
 
@@ -55,8 +55,7 @@ class EsService(object):
             filt.append({"term": {k: key[k]}})
         return filt
 
-    def get_one(self, tenant_id, query):
-        index_name = self.get_all_search_index_name(tenant_id)
+    def get_one_from_index(self, index_name, query):
         result = self.es.search(index=index_name, body={"query": query})
         hits = result["hits"]["hits"]
         self.logger.debug("Get one %s: %s", index_name, pformat(query))
@@ -66,13 +65,33 @@ class EsService(object):
         if len(hits) > 1:
             raise Exception("Multiple hits for {}/{}".format(index_name, pformat(query)))
         return None
+
+    def get_one(self, tenant_id, query):
+        index_name = self.get_all_search_index_name(tenant_id)
+        return self.get_one_from_index(index_name, query)
+
+    def get_one_from_data_index(self, tenant_id, query):
+        index_name = self.get_data_index_name(tenant_id)
+        return self.get_one_from_index(index_name, query)
     
     def get_by_uuid(self, tenant_id, uuid):
         # Returns a document by uuid        
-        query = as_term_filter({"document_uuid": uuid,
+        query = as_term_filter({"document_version_uuid": uuid,
                                 "is_version": False})
 
-        return self.get_one(tenant_id, query)
+        return self.get_one_from_data_index(tenant_id, query)
+
+    def get_by_id(self, tenant_id, id):
+        index_name = self.get_data_index_name(tenant_id)
+        doc = self.es.get(index=index_name, id=id, ignore=404)
+        return doc
+
+    def get_by_path_and_version(self, tenant_id, path, version=None):
+        # Returns a document by path and version
+        if version==None:
+            version = "0"
+        doc_id = self.get_hash_from_path_and_version(path, version)
+        return self.get_by_id(tenant_id, doc_id)
     
     def search(self, tenant_id=None, schema_id=None, query=None):
         """ Returns a document by key """
@@ -116,38 +135,68 @@ class EsService(object):
         index_name = self.get_data_index_name(doc["tenant_id"])
         self.logger.debug("Deleting document %s/%s refresh = %s", index_name, uuid, self.refresh)
         self.es.delete(index=index_name, id=uuid, refresh=self.refresh)
-        
-    def save(self, doc, parent=None):
-        """ Indexes a document in a data index """
-        index_name = self.get_data_index_name(doc["tenant_id"])
-        uuid = doc["document_version_uuid"]
-        self.logger.debug("Persisting document %s/%s %s refresh = %s", index_name, uuid, pformat(doc), self.refresh)
-        self.es.index(index=index_name, id=uuid, body=doc)
-        return self.index(doc, parent)
 
-    def index(self, doc, parent=None):
+    def get_hash_from_path_and_version(self, path, version=None):
+        text = "{}|{}".format(path, version)
+        text = text.encode("utf-8")
+        hash_object = hashlib.sha256(text)
+        hex_dig = hash_object.hexdigest()
+        return hex_dig
+        
+    def create(self, doc, parent_path):
+        """ Indexes a document in a data index """
+        # computing acls
+        if parent_path is None:
+            # trying to create root document
+            path = "/"
+        else:
+            # trying to create regular document
+            path = "{}/{}".format(parent_path, doc["id"])
+        db_doc = self.get_by_path_and_version(doc["tenant_id"], path)
+        if bool(db_doc):
+            raise "Document already exists {}".format(path)
+        
+        index_name = self.get_data_index_name(doc["tenant_id"])
+        doc["path_hash"] = self.get_hash_from_path_and_version(path)
+        self.logger.debug("Persisting document %s/%s|%s (%s) %s refresh = %s",
+                          index_name,
+                          path,
+                          doc["version"],
+                          doc["path_hash"],
+                          pformat(doc),
+                          self.refresh)
+        self.es.index(index=index_name, id=doc["path_hash"], body=doc, op="create")
+        return self.index(doc)
+
+    def index(self, doc):
         """ Indexes a document in a search index """
         index_doc = copy.deepcopy(doc)
         index_doc.update(json.loads(doc["data"]))
         uuid = doc["document_version_uuid"]
-        # computing acls
-        if parent == None:
-            if index_doc["is_root"]:
-                index_doc["path"] = "/"
-                index_doc["acl"] = index_doc["local_acl"]
+        # computing path and acl
+        if index_doc["parent_uuid"] is None:
+            # root document
+            index_doc["path"] = "/"
+            index_doc["acl"] = index_doc["local_acl"]
+        else:
+            # Régular document
+            parent = self.get_by_uuid(doc["tenant_id"], doc["parent_uuid"])["_source"]
+            if parent["parent_uuid"] is None:
+                index_doc["path"] = "/" + index_doc["name"]
             else:
-                parent = self.get_by_uuid(doc["tenant_id"], doc["parent_uuid"])["_source"]
-                if parent["is_root"]:
-                    index_doc["path"] = "/" + index_doc["id"]
-                else:
-                    index_doc["path"] = parent["path"] + "/" + index_doc["id"]
-                index_doc["acl"] = ensure_aces(index_doc["local_acl"], parent["acl"])
-
+                index_doc["path"] = "{}/{}".format(parent["path"], index_doc["name"])
+            index_doc["acl"] = ensure_aces(index_doc["local_acl"], parent["acl"])
         del index_doc["data"]
         index_name = self.get_search_index_name(doc["tenant_id"], doc["schema_id"])
 
-        self.logger.debug("Indexing document %s/%s %s refresh = %s", index_name, uuid, pformat(index_doc), self.refresh)
-        self.es.index(index=index_name, id=uuid, body=index_doc, refresh=self.refresh)
+        self.logger.debug("Indexing document %s/%s|%s (%s) refresh = %s %s",
+                          index_name,
+                          index_doc["path"],
+                          index_doc["version"],
+                          index_doc["path_hash"],
+                          pformat(index_doc),
+                          self.refresh)
+        self.es.index(index=index_name, id=index_doc["path_hash"], body=index_doc, refresh=self.refresh)
         return index_doc
 
     def unindex(self, doc):

@@ -45,9 +45,9 @@ class DocumentService(object):
         hit = self.es_service.get_one(self.tenant_id, query=query)
         return self.as_source(hit)
 
-    def get_root(self, with_context=True):
-        query = as_term_filter({"is_root": True, "schema_id": "root", "id": "root", "is_version": False})
-        return self.get_one(query, with_context=with_context)
+#    def get_root(self, with_context=True):
+#        query = as_term_filter({"is_root": True, "schema_id": "root", "id": "root", "is_version": False})
+#        return self.get_one(query, with_context=with_context)
 
 #    def get_root_uuid(self):
 #        return self._get_root()["document_uuid"]
@@ -91,52 +91,38 @@ class DocumentService(object):
 
         uuid = uuid4().hex
 
-        if not doc["id"]:
-            doc["id"] = uuid
-
         # Compute Parent
         if parent == None:
             if self.context.is_tenant_admin():
                 is_root = True
-                exists = bool(self.get_root(with_context=False))
                 parent_uuid = None
             else:
                 raise Exception("Only tenant admins can create root documents")
-
-
         else:
             is_root = False
             parent = self.doc_from_any(parent)
-            exists = self.get_child_by_id(parent, doc["id"], with_context=False)
-            exists = True if exists is not None else False
-            parent_uuid = parent["document_uuid"]
         # TODO: Check write access on parent
 
-        # check unicity
-        if not exists:
-            # Compute acl
-            local_acl = self.ensure_base_aces(local_acl)
-            
-            now = datetime.datetime.utcnow()
-            data_doc = {
-                "tenant_id": self.tenant_id,
-                "schema_id": schema_id,
-                "document_uuid": uuid,
-                "document_version_uuid": uuid,
-                "parent_uuid": parent_uuid,
-                "local_acl": local_acl,
-                "is_acl_inherited": is_acl_inherited,
-                "is_root": is_root,
-                "is_version": False,
-                "created": now,
-                "updated": now,
-                "data": json.dumps(doc)
-                }
+        # Compute acl
+        local_acl = self.ensure_base_aces(local_acl)
+        
+        now = datetime.datetime.utcnow()
+        data_doc = {
+            "tenant_id": self.tenant_id,
+            "schema_id": schema_id,
+            "document_uuid": uuid,
+            "document_version_uuid": uuid,
+            "parent_uuid": parent_uuid,
+            "local_acl": local_acl,
+            "is_acl_inherited": is_acl_inherited,
+            "is_version": False,
+            "created": now,
+            "updated": now,
+            "data": json.dumps(doc)
+            }
 
-            return self.es_service.save(data_doc)
-        else:
-            raise Exception("Document id exists in this tree or duplicate root document {}/{}".format(self.tenant_id,
-                                                                  doc["id"]))
+        return self.es_service.create(data_doc, parent)
+
     def fdms_search(self, schema_id=None, query=None):
         docs = self.es_service.search(self.tenant_id, schema_id, query)
         docs = [doc["_source"] for doc in docs]

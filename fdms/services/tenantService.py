@@ -28,7 +28,7 @@ class TenantService(object):
         document_service = DocumentService(self.tenant_id, self.context, refresh="wait_for")
         # create root document
         root = document_service.create("root", {
-            "id": "root",
+            "name": "root",
             }, parent=None)
 
         # create base search indexes
@@ -43,19 +43,19 @@ class TenantService(object):
         
         # create base users
         document_service.create("user", {
-            "id": "admin",
+            "name": "admin",
             "is_tenant_admin": True
-            }, parent = root["document_uuid"])
+            }, parent=root)
         # create base groups
         document_service.create("group", {
-            "id": "admin",
+            "name": "admin",
             "users": ["admin"]
-            }, parent = root["document_uuid"])
+            }, parent=root)
         # Register tenant in tenant master
         fdms_document_service = DocumentService(TENANT_MASTER, self.context, refresh="wait_for")
         fdms_document_service.create("tenant", {
-                "id": self.tenant_id,
-                }, parent=fdms_document_service.get_root())
+                "name": self.tenant_id,
+                }, parent="/")
 
     def delete(self, drop=False):
         """ Delete tenant """

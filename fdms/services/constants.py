@@ -24,12 +24,12 @@ TENANT_SCHEMA_DEFINITION = {
 }
 # The document containing the FDMS mapping of the schema document type
 SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
-    "id": "schema",
+    "path_segment": "schema",
     "properties" : SCHEMA_SCHEMA_DEFINITION,
 }
 # The document containing the FDMS mapping of the folder document type
 ROOT_SCHEMA_DEFINITION_DOCUMENT = {
-    "id": "root",
+    "path_segment": "root",
     "properties" : ROOT_SCHEMA_DEFINITION,
 }
 # Master tenant (contains metadata about other tenants)
@@ -41,13 +41,13 @@ PROPERTIES_BASE = {
     "tenant_id": {"type": "keyword"},
     "local_acls": {"type": "keyword"},
     "inherit_acls": {"type": "boolean"},
-    "is_root": {"type": "boolean"},
     "created": {"type": "date"},
     "updated": {"type": "date"},
     "document_uuid": {"type": "keyword"},
     "document_version_uuid": {"type": "keyword"},
     "parent_uuid": {"type": "keyword"},
-    "id": {"type": "keyword"},
+    "name": {"type": "keyword"},
+    "path_hash": {"type": "keyword"}
 }
 # Mapping of the data indexes
 DATA_MAPPING = dict(PROPERTIES_BASE)
