@@ -87,15 +87,15 @@ class SchemaService(object):
                          self.schema_id)
         self.logger.debug(pformat(properties))
 
-       # Create ES index
+        # Create ES index
         mapping_properties = self.__make_es_mapping(properties)
         self.es_service.create_index(self.es_index, mapping_properties, drop)
 
         # Save the schema document*
         if persist:
-            schema_doc = {"id": self.schema_id, "properties": json.dumps(properties)}
+            schema_doc = {"properties": json.dumps(properties)}
             document_service = DocumentService(self.tenant_id, self.context, refresh=self.refresh)
-            document_service.create("schema", schema_doc, parent=document_service.get_root())
+            document_service.create("schema", parent="/", path_segment=self.schema_id, data=schema_doc)
 
 
     def delete(self):

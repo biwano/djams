@@ -34,16 +34,11 @@ class DocumentService(object):
                 }
         return query
 
-    def as_source(self, result):
-        if result:
-            result = result["_source"]
-        return result
-
     def get_one(self, query, with_context=True):
         if with_context:
             query = self.contextualize_query(query)
         hit = self.es_service.get_one(self.tenant_id, query=query)
-        return self.as_source(hit)
+        return hit
 
 #    def get_root(self, with_context=True):
 #        query = as_term_filter({"is_root": True, "schema_id": "root", "id": "root", "is_version": False})
@@ -81,51 +76,53 @@ class DocumentService(object):
         else:
             return self.get_by_uuid(thing, with_context=with_context)
 
+    def create_root(self):
+        return self.create("root", parent=None, path_segment=None)
 
-    def create(self, schema_id, doc, parent, is_acl_inherited=True, local_acl=None):
+    def create(self, schema_id, parent, path_segment, data={}, is_acl_inherited=True, local_acl=None):
         """ Creates a document """
         self.logger.debug("Creating document in schema %s/%s : %s",
                           self.tenant_id,
                           schema_id,
-                          pformat(doc))
+                          pformat(data))
 
         uuid = uuid4().hex
 
         # Compute Parent
-        if parent == None:
+        if parent==None:
             if self.context.is_tenant_admin():
-                is_root = True
                 parent_uuid = None
             else:
                 raise Exception("Only tenant admins can create root documents")
         else:
-            is_root = False
             parent = self.doc_from_any(parent)
+            parent_uuid = parent["self_uuid"]
         # TODO: Check write access on parent
 
         # Compute acl
         local_acl = self.ensure_base_aces(local_acl)
-        
+
         now = datetime.datetime.utcnow()
         data_doc = {
             "tenant_id": self.tenant_id,
             "schema_id": schema_id,
+            "path_segment": path_segment,
+            "self_uuid": uuid,
             "document_uuid": uuid,
-            "document_version_uuid": uuid,
             "parent_uuid": parent_uuid,
             "local_acl": local_acl,
             "is_acl_inherited": is_acl_inherited,
             "is_version": False,
+            "version": None,
             "created": now,
             "updated": now,
-            "data": json.dumps(doc)
+            "data": json.dumps(data)
             }
 
         return self.es_service.create(data_doc, parent)
 
     def fdms_search(self, schema_id=None, query=None):
         docs = self.es_service.search(self.tenant_id, schema_id, query)
-        docs = [doc["_source"] for doc in docs]
         return docs
 
     def search(self, schema_id=None, query=None, with_context=True):

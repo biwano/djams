@@ -61,9 +61,11 @@ class EsService(object):
         self.logger.debug("Get one %s: %s", index_name, pformat(query))
         if len(hits) == 1:
             self.logger.debug("Found: %s", pformat(hits[0]))
-            return hits[0]
-        if len(hits) > 1:
+            return hits[0]["_source"]
+        elif len(hits) > 1:
             raise Exception("Multiple hits for {}/{}".format(index_name, pformat(query)))
+        else:
+            self.logger.debug("Not Found")
         return None
 
     def get_one(self, tenant_id, query):
@@ -73,26 +75,29 @@ class EsService(object):
     def get_one_from_data_index(self, tenant_id, query):
         index_name = self.get_data_index_name(tenant_id)
         return self.get_one_from_index(index_name, query)
-    
+
     def get_by_uuid(self, tenant_id, uuid):
-        # Returns a document by uuid        
-        query = as_term_filter({"document_version_uuid": uuid,
+        # Returns a document by uuid
+        query = as_term_filter({"self_uuid": uuid,
                                 "is_version": False})
 
         return self.get_one_from_data_index(tenant_id, query)
 
     def get_by_id(self, tenant_id, id):
         index_name = self.get_data_index_name(tenant_id)
-        doc = self.es.get(index=index_name, id=id, ignore=404)
-        return doc
+        response = self.es.get(index=index_name, id=id, ignore=404)
+        if "found" in response and not response.get("found"):
+            return None
+        return response["_source"]
+
+    def get_by_path_hash(self, tenant_id, path_hash):
+        return self.get_by_id(tenant_id, path_hash)
 
     def get_by_path_and_version(self, tenant_id, path, version=None):
         # Returns a document by path and version
-        if version==None:
-            version = "0"
-        doc_id = self.get_hash_from_path_and_version(path, version)
-        return self.get_by_id(tenant_id, doc_id)
-    
+        path_hash = self.get_hash_from_path_and_version(path, version)
+        return self.get_by_path_hash(tenant_id, path_hash)
+
     def search(self, tenant_id=None, schema_id=None, query=None):
         """ Returns a document by key """
         index_name = self.get_search_index_name_auto(tenant_id, schema_id)
@@ -103,7 +108,8 @@ class EsService(object):
         self.logger.debug("Search %s: %s", index_name, pformat(body))
         result = self.es.search(index=index_name, body=body)
         hits = result["hits"]["hits"]
-        return hits
+        docs = [hit["_source"] for hit in hits]
+        return docs
 
     def create_index(self, index_name, properties, drop):
         """ Creates an index """
@@ -127,68 +133,69 @@ class EsService(object):
     def delete_data_index(self, tenant_id):
         index_name = self.get_data_index_name(tenant_id)
         self.delete_index(index_name)
-        
+
     def delete(self, doc):
         """ deletes a document """
         self.unindex(doc)
-        uuid = doc["document_version_uuid"]
+        uuid = doc["self_uuid"]
         index_name = self.get_data_index_name(doc["tenant_id"])
         self.logger.debug("Deleting document %s/%s refresh = %s", index_name, uuid, self.refresh)
         self.es.delete(index=index_name, id=uuid, refresh=self.refresh)
 
     def get_hash_from_path_and_version(self, path, version=None):
+        if version == None:
+            version = "None"
         text = "{}|{}".format(path, version)
         text = text.encode("utf-8")
         hash_object = hashlib.sha256(text)
         hex_dig = hash_object.hexdigest()
         return hex_dig
-        
-    def create(self, doc, parent_path):
-        """ Indexes a document in a data index """
-        # computing acls
-        if parent_path is None:
-            # trying to create root document
-            path = "/"
+
+    def update_document_computables(self, doc, parent):
+        if doc["parent_uuid"] is None:
+            # root document
+            doc["path"] = "/"
+            doc["acl"] = doc["local_acl"]
         else:
-            # trying to create regular document
-            path = "{}/{}".format(parent_path, doc["id"])
-        db_doc = self.get_by_path_and_version(doc["tenant_id"], path)
+            # Régular document
+            if parent["parent_uuid"] is None:
+                doc["path"] = "/" + doc["path_segment"]
+            else:
+                doc["path"] = "{}/{}".format(parent["path"], doc["path_segment"])
+            doc["acl"] = ensure_aces(doc["local_acl"], parent["acl"])
+        doc["path_hash"] = self.get_hash_from_path_and_version(doc["path"], doc["version"])
+
+    def create(self, doc, parent):
+        """ Indexes a document in a data index """
+        # computing path
+        self.update_document_computables(doc, parent)
+        db_doc = self.get_by_path_hash(doc["tenant_id"], doc["path_hash"])
         if bool(db_doc):
-            raise "Document already exists {}".format(path)
-        
+            raise Exception("Document already exists {} ({}|{})".format(doc["path_hash"], doc["path"], doc["version"]))
+
         index_name = self.get_data_index_name(doc["tenant_id"])
-        doc["path_hash"] = self.get_hash_from_path_and_version(path)
         self.logger.debug("Persisting document %s/%s|%s (%s) %s refresh = %s",
                           index_name,
-                          path,
+                          doc["path"],
                           doc["version"],
                           doc["path_hash"],
                           pformat(doc),
                           self.refresh)
-        self.es.index(index=index_name, id=doc["path_hash"], body=doc, op="create")
-        return self.index(doc)
 
-    def index(self, doc):
+        self.es.index(index=index_name, id=doc["path_hash"], body=doc, op_type="create")
+        return self.index(doc, parent)
+
+    def index(self, doc, parent=None):
         """ Indexes a document in a search index """
         index_doc = copy.deepcopy(doc)
         index_doc.update(json.loads(doc["data"]))
-        uuid = doc["document_version_uuid"]
-        # computing path and acl
-        if index_doc["parent_uuid"] is None:
-            # root document
-            index_doc["path"] = "/"
-            index_doc["acl"] = index_doc["local_acl"]
+        if index_doc["parent_uuid"]:
+            parent = self.get_by_uuid(doc["tenant_id"], doc["parent_uuid"])
         else:
-            # Régular document
-            parent = self.get_by_uuid(doc["tenant_id"], doc["parent_uuid"])["_source"]
-            if parent["parent_uuid"] is None:
-                index_doc["path"] = "/" + index_doc["name"]
-            else:
-                index_doc["path"] = "{}/{}".format(parent["path"], index_doc["name"])
-            index_doc["acl"] = ensure_aces(index_doc["local_acl"], parent["acl"])
-        del index_doc["data"]
-        index_name = self.get_search_index_name(doc["tenant_id"], doc["schema_id"])
+            parent = None
+        self.update_document_computables(index_doc, parent)
 
+        index_name = self.get_search_index_name(doc["tenant_id"], doc["schema_id"])
         self.logger.debug("Indexing document %s/%s|%s (%s) refresh = %s %s",
                           index_name,
                           index_doc["path"],
@@ -201,7 +208,7 @@ class EsService(object):
 
     def unindex(self, doc):
         """ de indexes a document"""
-        uuid = doc["document_version_uuid"]
+        uuid = doc["self_uuid"]
         index_name = self.get_search_index_name(doc["tenant_id"], doc["schema_id"])
         self.logger.debug("Unindexing document %s/%s refresh = %s", index_name, uuid, self.refresh)
         self.es.delete(index=index_name, id=uuid, refresh=self.refresh)

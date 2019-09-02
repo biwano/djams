@@ -42,6 +42,7 @@ def custom_401(error):
 def create_tenant():
     return fdms.views.TenantsView().create()
 
+
 @app.route('/tenants/<tenant_id>', methods=["DELETE"])
 @fdms.auth.is_fdms_admin
 def delete_tenant(tenant_id):
@@ -53,16 +54,18 @@ def delete_tenant(tenant_id):
 def search():
     return fdms.views.DocumentsView().search()
 
+
 @app.route('/filter', methods=["GET"])
 @fdms.auth.is_logged_in
 def filter():
-   return fdms.views.DocumentsView().filter()
+    return fdms.views.DocumentsView().filter()
 
 # documents
 @app.route('/documents', methods=["POST"])
 @fdms.auth.is_logged_in
 def create():
     return fdms.views.DocumentsView().create()
+
 
 @app.route('/user', methods=["GET"])
 @fdms.auth.is_logged_in

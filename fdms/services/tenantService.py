@@ -27,9 +27,7 @@ class TenantService(object):
         
         document_service = DocumentService(self.tenant_id, self.context, refresh="wait_for")
         # create root document
-        root = document_service.create("root", {
-            "name": "root",
-            }, parent=None)
+        root = document_service.create_root()
 
         # create base search indexes
         SchemaService(self.tenant_id, "schema", self.context).register(SCHEMA_SCHEMA_DEFINITION, drop)
@@ -40,30 +38,29 @@ class TenantService(object):
         if self.tenant_id == TENANT_MASTER:
             SchemaService(self.tenant_id, "tenant", self.context).register(TENANT_SCHEMA_DEFINITION, drop)
 
-        
+        # Create folders
+        document_service.create("folder", parent="/", path_segment="meta")
+        document_service.create("folder", parent="/meta", path_segment="users")
+        document_service.create("folder", parent="/meta", path_segment="groups")
         # create base users
-        document_service.create("user", {
-            "name": "admin",
+        document_service.create("user", parent="/meta/users", path_segment="admin", data={
             "is_tenant_admin": True
-            }, parent=root)
+            })
         # create base groups
-        document_service.create("group", {
-            "name": "admin",
+        document_service.create("group", parent="/meta/groups", path_segment="admin", data={
             "users": ["admin"]
-            }, parent=root)
+            })
         # Register tenant in tenant master
         fdms_document_service = DocumentService(TENANT_MASTER, self.context, refresh="wait_for")
-        fdms_document_service.create("tenant", {
-                "name": self.tenant_id,
-                }, parent="/")
+        fdms_document_service.create("tenant", parent="/", path_segment=self.tenant_id)
 
     def delete(self, drop=False):
         """ Delete tenant """
-        
+
         # Find all schemas
         document_service = DocumentService(self.tenant_id, self.context)
         schemas = document_service.search("schema")
-        
+
         # Delete all schemas
         for schema in schemas:
             SchemaService(self.tenant_id, schema["id"], self.context).delete()
@@ -71,6 +68,6 @@ class TenantService(object):
         self.es_service.delete_data_index(self.tenant_id)
 
         # Unregister tenant in tenant master
-        
+
         document_service = DocumentService(TENANT_MASTER, self.context, refresh="wait_for")
-        document_service.delete_child_by_id("/", self.tenant_id)            
+        document_service.delete_child_by_id("/", self.tenant_id)
