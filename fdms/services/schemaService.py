@@ -64,15 +64,30 @@ class SchemaService(object):
 
             debug_schema("none")
 
-        return get_cache().get(key="schema_{}|{}".format(self.tenant_id, self.schema_id),
+        document = get_cache().get(key="schema_{}|{}".format(self.tenant_id, self.schema_id),
                                createfunc=__get_document_no_cache)
+
+        if document==None:
+            raise Exception("Cannot find schema definition", self.tenant_id, self.schema_id)
+
+        return document
 
     def get_properties(self):
         """ return the schema properties definition """
         return self.__get_document()["properties"]
 
+    def get_aliases(self):
+        """ return the schema properties definition """
+        properties = self.get_properties()
+        aliases = {}
+        for prop in properties:
+            if "alias" in properties[prop]:
+                aliases[prop] = properties[prop]["alias"]
+        return aliases
+
+
+    """
     def get_primary_key(self):
-        """ return the primary key of the schema """
         properties = self.get_properties()
         primary_key = []
         for prop in properties:
@@ -81,7 +96,7 @@ class SchemaService(object):
         if not primary_key:
             primary_key = [DOCUMENT_UUID]
         return primary_key
-
+    """
 
     def register(self, properties, drop=False, persist=True):
         """ Register a schema """
@@ -113,10 +128,14 @@ class SchemaService(object):
         mapping_properties.update(SEARCH_MAPPING_BASE)
 
         for prop in mapping_properties:
+            # Populating aliases
+            if "alias" in mapping_properties[prop]:
+                alias = mapping_properties[prop]["alias"]
+                mapping_properties[prop] = mapping_properties[alias]
+            # Removes specific FDMS Keys
             for key in FDMS_MAPPING_KEYS:
                 if key in mapping_properties[prop]:
                     del mapping_properties[prop][key]
 
         return mapping_properties
-
 SchemaService.cache = {}

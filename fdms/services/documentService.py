@@ -2,6 +2,7 @@
 from uuid import uuid4
 import datetime
 import json
+import copy
 import logging
 from pprint import pformat
 from .constants import (
@@ -24,6 +25,7 @@ from .constants import (
     DATA,
     ROOT_SCHEMA_ID)
 from .esService import EsService
+from .schemaService import SchemaService
 from .documentHelpers import ensure_aces, as_term_filter
 
 
@@ -44,7 +46,7 @@ class DocumentService(object):
     def contextualize_query(self, query):
         acl_filter = []
         for ace in self.context.acl:
-            acl_filter.append({"prefix" : {ACL: ace}})
+            acl_filter.append({"prefix": {ACL: ace}})
 
         query = {"bool": {"must": query,
                           "should": acl_filter}
@@ -96,6 +98,17 @@ class DocumentService(object):
     def create_root(self):
         return self.create(ROOT_SCHEMA_ID, parent=None, path_segment=None)
 
+    def set_aliases_be(self, tenant_id, schema_id, source, destination):
+        schemaService = SchemaService(tenant_id, schema_id, self.context, self.refresh)
+        aliases = schemaService.get_aliases()
+        for alias in aliases:
+            if aliases[alias] in source:
+                destination[alias] = source[aliases[alias]]
+
+    def set_aliases(self, tenant_id, schema_id, source, destination):
+        self.set_aliases_be(tenant_id, schema_id, source, destination)
+        self.set_aliases_be(tenant_id, schema_id, destination, destination)
+
     def create(self, schema_id, parent, path_segment, data={}, is_acl_inherited=True, local_acl=None):
         """ Creates a document """
         self.logger.debug("Creating document in schema %s/%s : %s",
@@ -116,11 +129,12 @@ class DocumentService(object):
             parent_uuid = parent[SELF_UUID]
         # TODO: Check write access on parent
 
-        # Compute acl
+        # Ensure local acl
         local_acl = self.ensure_base_aces(local_acl)
 
+        # SEtting metadata
         now = datetime.datetime.utcnow()
-        data_doc = {
+        metadata = {
             TENANT_ID: self.tenant_id,
             SCHEMA_ID: schema_id,
             LOCAL_ACL: local_acl,
@@ -132,9 +146,14 @@ class DocumentService(object):
             PARENT_UUID: parent_uuid,
             PATH_SEGMENT: path_segment,
             IS_VERSION: False,
-            VERSION: None,
-            DATA: json.dumps(data)
-            }
+            VERSION: None
+        }
+        # Setting aliases
+        self.set_aliases(self.tenant_id, schema_id, metadata, data)
+        # Computing doc
+        data_doc = metadata
+        data_doc[DATA] = json.dumps(data)
+
         return self.es_service.create(data_doc, parent)
 
     def fdms_search(self, schema_id=None, query=None):

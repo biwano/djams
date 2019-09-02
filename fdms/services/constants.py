@@ -1,35 +1,6 @@
 """ Services shared contants """
 import json
-# The FDMS mapping of the schema document type
-SCHEMA_SCHEMA_DEFINITION = {
-    "properties": {"type": "text", "index": False},
 
-}
-# The FDMS mapping of the user document type
-USER_SCHEMA_DEFINITION = {
-    "is_tenant_admin": {"type": "boolean"},
-}
-# The FDMS mapping of the group document type
-GROUP_SCHEMA_DEFINITION = {
-    "users": {"type": "keyword"},
-}
-# The FDMS mapping of the group document type
-FOLDER_SCHEMA_DEFINITION = {
-}
-# The FDMS mapping of the group document type
-ROOT_SCHEMA_DEFINITION = {
-}
-# The FDMS mapping of the group document type
-TENANT_SCHEMA_DEFINITION = {
-}
-# The document containing the FDMS mapping of the schema document type
-SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
-    "properties": SCHEMA_SCHEMA_DEFINITION
-}
-# The document containing the FDMS mapping of the folder document type
-ROOT_SCHEMA_DEFINITION_DOCUMENT = {
-    "properties": ROOT_SCHEMA_DEFINITION
-}
 # Built in entries
 TENANT_MASTER_ID = "__root"
 SCHEMA_SCHEMA_ID = "__schema"
@@ -57,6 +28,40 @@ PATH_HASH = "__path_hash"
 IS_VERSION = "__is_version"
 VERSION = "__version"
 DATA = "__data"
+
+# The FDMS mapping of the schema document type
+SCHEMA_SCHEMA_DEFINITION = {
+    "properties": {"type": "text", "index": False},
+    "id": {"alias": PATH_SEGMENT}
+}
+# The FDMS mapping of the user document type
+USER_SCHEMA_DEFINITION = {
+    "is_tenant_admin": {"type": "boolean"},
+    "id": {"alias": PATH_SEGMENT}
+}
+# The FDMS mapping of the group document type
+GROUP_SCHEMA_DEFINITION = {
+    "users": {"type": "keyword"},
+    "id": {"alias": PATH_SEGMENT}
+}
+# The FDMS mapping of the group document type
+FOLDER_SCHEMA_DEFINITION = {
+}
+# The FDMS mapping of the group document type
+ROOT_SCHEMA_DEFINITION = {
+}
+# The FDMS mapping of the group document type
+TENANT_SCHEMA_DEFINITION = {
+    "id": {"alias": PATH_SEGMENT}
+}
+# The document containing the FDMS mapping of the schema document type
+SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
+    "properties": SCHEMA_SCHEMA_DEFINITION,
+}
+# The document containing the FDMS mapping of the folder document type
+ROOT_SCHEMA_DEFINITION_DOCUMENT = {
+    "properties": ROOT_SCHEMA_DEFINITION
+}
 
 # Base properties
 PROPERTIES_BASE = {
@@ -102,7 +107,7 @@ SEARCH_MAPPING_BASE.update({
 })
 
 # pure FDMS properties in mappings (must be removed for creating an ES mapping)
-FDMS_MAPPING_KEYS = []
+FDMS_MAPPING_KEYS = ["alias"]
 
 # acl provided by the tenant service
 TENANT_ACES = ["group:admin"]
