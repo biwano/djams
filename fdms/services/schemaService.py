@@ -3,10 +3,14 @@ import logging
 import json
 import copy
 from pprint import pformat
-from .constants import (SEARCH_MAPPING_BASE,
+from .constants import (
+    SEARCH_MAPPING_BASE,
     SCHEMA_SCHEMA_DEFINITION_DOCUMENT,
     ROOT_SCHEMA_DEFINITION_DOCUMENT,
-    FDMS_MAPPING_KEYS)
+    FDMS_MAPPING_KEYS,
+    DOCUMENT_UUID,
+    SCHEMA_SCHEMA_ID,
+    ROOT_SCHEMA_ID)
 from .esService import EsService
 from .cacheService import get_cache
 
@@ -17,7 +21,7 @@ class SchemaService(object):
         self.tenant_id = tenant_id
         self.schema_id = schema_id
         self.es_service = EsService(refresh)
-        self.schema_es_index = self.es_service.get_search_index_name(self.tenant_id, "schema")
+        self.schema_es_index = self.es_service.get_search_index_name(self.tenant_id, SCHEMA_SCHEMA_ID)
         self.es_index = self.es_service.get_search_index_name(self.tenant_id, self.schema_id)
         self.logger = logging.getLogger(type(self).__name__)
         self.context = context
@@ -31,9 +35,9 @@ class SchemaService(object):
             def debug_schema(source):
                 if schema:
                     self.logger.debug("schema from %s %s/%s",
-                        source,
-                        self.tenant_id,
-                        self.schema_id)
+                                      source,
+                                      self.tenant_id,
+                                      self.schema_id)
                 return schema
 
             # get from cache
@@ -41,8 +45,8 @@ class SchemaService(object):
             #if debug_schema("cache"):
             #    return schema
             schema = None
-            try:    
-                schema = DocumentService(self.tenant_id, self.context).get_by_key("schema", {"id": "schema"})
+            try:
+                schema = DocumentService(self.tenant_id, self.context).get_by_key("schema", {"id": SCHEMA_SCHEMA_ID})
                 if debug_schema("database"):
                     schema["properties"] = json.loads(schema["properties"])
                     return schema
@@ -50,10 +54,10 @@ class SchemaService(object):
                 pass
 
             # get from constants if it is the schema schema (because it may not be indexed yet)
-            if self.schema_id == "schema" and schema is None:
+            if self.schema_id == SCHEMA_SCHEMA_ID and schema is None:
                 schema = SCHEMA_SCHEMA_DEFINITION_DOCUMENT
             # get from constants if it is the root schema (because it can exist as a virtual schema)
-            if self.schema_id == "root" and schema is None:
+            if self.schema_id == ROOT_SCHEMA_ID and schema is None:
                 schema = ROOT_SCHEMA_DEFINITION_DOCUMENT
             if debug_schema("static definition"):
                 return schema
@@ -75,7 +79,7 @@ class SchemaService(object):
             if properties[prop].get("key") is not None:
                 primary_key.append(prop)
         if not primary_key:
-            primary_key = ["id"]
+            primary_key = [DOCUMENT_UUID]
         return primary_key
 
 
@@ -95,7 +99,7 @@ class SchemaService(object):
         if persist:
             schema_doc = {"properties": json.dumps(properties)}
             document_service = DocumentService(self.tenant_id, self.context, refresh=self.refresh)
-            document_service.create("schema", parent="/", path_segment=self.schema_id, data=schema_doc)
+            document_service.create(schema_id=SCHEMA_SCHEMA_ID, parent="/", path_segment=self.schema_id, data=schema_doc)
 
 
     def delete(self):
@@ -114,7 +118,5 @@ class SchemaService(object):
                     del mapping_properties[prop][key]
 
         return mapping_properties
-
-
 
 SchemaService.cache = {}
