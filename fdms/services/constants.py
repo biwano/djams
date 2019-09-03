@@ -10,6 +10,18 @@ FOLDER_SCHEMA_ID = "__folder"
 ROOT_SCHEMA_ID = "__root"
 TENANT_SCHEMA_ID = "__tenant"
 
+META_PATH_SEGMENT = "meta"
+USERS_PATH_SEGMENT = "users"
+GROUPS_PATH_SEGMENT = "groups"
+SCHEMAS_PATH_SEGMENT = "schemas"
+TENANTS_PATH_SEGMENT = "tenants"
+META_PATH = "/{}".format(META_PATH_SEGMENT)
+SCHEMAS_PATH = "/"
+USERS_PATH = "{}/{}".format(META_PATH, USERS_PATH_SEGMENT)
+GROUPS_PATH = "{}/{}".format(META_PATH, GROUPS_PATH_SEGMENT)
+TENANTS_PATH = "{}/{}".format(META_PATH, TENANTS_PATH_SEGMENT)
+
+ADMIN = "admin"
 
 # Document keys
 TENANT_ID = "__tenant_id"
@@ -110,10 +122,10 @@ SEARCH_MAPPING_BASE.update({
 FDMS_MAPPING_KEYS = ["alias"]
 
 # acl provided by the tenant service
-TENANT_ACES = ["group:admin"]
+TENANT_ACES = ["group:{}:".format(ADMIN)]
 
 
 # base acl on all documents to enable all operations for the tenant and the administrators
 ACL_BASE = [
-    "group:admin:rw",
+    "group:{}:rw".format(ADMIN),
 ]

@@ -21,7 +21,7 @@ from .constants import (
     DOCUMENT_UUID,
     DATA
 )
-from .documentHelpers import ensure_aces, as_term_filter
+from .documentHelpers import ensure_aces, as_term_filter, parent_path
 import hashlib
 #es_service = None
 
@@ -63,12 +63,13 @@ class EsService(object):
                 return cls.get_all_search_index_name(tenant_id)
         else:
             return cls.get_all_tenants_search_index_name()
-
+    """
     def get_by_key_filter(self, key):
         filt = []
         for k in key:
             filt.append({"term": {k: key[k]}})
         return filt
+    """
 
     def get_one_from_index(self, index_name, query):
         result = self.es.search(index=index_name, body={"query": query})
@@ -87,6 +88,7 @@ class EsService(object):
         index_name = self.get_all_search_index_name(tenant_id)
         return self.get_one_from_index(index_name, query)
 
+    """
     def get_one_from_data_index(self, tenant_id, query):
         index_name = self.get_data_index_name(tenant_id)
         return self.get_one_from_index(index_name, query)
@@ -97,21 +99,31 @@ class EsService(object):
                                 IS_VERSION: False})
 
         return self.get_one_from_data_index(tenant_id, query)
+    """
 
-    def get_by_id(self, tenant_id, id):
+    def get_by_id_from_data_index(self, tenant_id, id):
         index_name = self.get_data_index_name(tenant_id)
         response = self.es.get(index=index_name, id=id, ignore=404)
+        self.logger.debug("Get by id: %s", id)
         if "found" in response and not response.get("found"):
             return None
+        self.logger.debug("Found: %s", pformat(response))
+        doc = response["_source"]
+        doc.update(json.loads(doc[DATA]))
+        del doc[DATA]
         return response["_source"]
 
     def get_by_path_hash(self, tenant_id, path_hash):
-        return self.get_by_id(tenant_id, path_hash)
+        return self.get_by_id_from_data_index(tenant_id, path_hash)
 
     def get_by_path_and_version(self, tenant_id, path, version=None):
         # Returns a document by path and version
+        self.logger.debug("Get by path and version: %s|%s", path, version)
         path_hash = self.get_hash_from_path_and_version(path, version)
         return self.get_by_path_hash(tenant_id, path_hash)
+
+    def get_by_path(self, tenant_id, path):
+        return self.get_by_path_and_version(tenant_id, path)
 
     def search(self, tenant_id=None, schema_id=None, query=None):
         """ Returns a document by key """
@@ -205,8 +217,9 @@ class EsService(object):
         """ Indexes a document in a search index """
         index_doc = copy.deepcopy(doc)
         index_doc.update(json.loads(doc[DATA]))
+        del index_doc[DATA]
         if index_doc[PARENT_UUID]:
-            parent = self.get_by_uuid(doc[TENANT_ID], doc[PARENT_UUID])
+            parent = self.get_by_path(doc[TENANT_ID], parent_path(index_doc[PATH]))
         else:
             parent = None
         self.update_document_computables(index_doc, parent)

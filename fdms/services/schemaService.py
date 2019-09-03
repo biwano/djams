@@ -8,11 +8,12 @@ from .constants import (
     SCHEMA_SCHEMA_DEFINITION_DOCUMENT,
     ROOT_SCHEMA_DEFINITION_DOCUMENT,
     FDMS_MAPPING_KEYS,
-    DOCUMENT_UUID,
     SCHEMA_SCHEMA_ID,
-    ROOT_SCHEMA_ID)
+    ROOT_SCHEMA_ID,
+    SCHEMAS_PATH)
 from .esService import EsService
 from .cacheService import get_cache
+from .documentHelpers import path
 
 
 class SchemaService(object):
@@ -31,8 +32,10 @@ class SchemaService(object):
     def __get_document(self):
         """ Returns the document containg the schema """
         def __get_document_no_cache():
+            
             from .documentService import DocumentService
             def debug_schema(source):
+                
                 if schema:
                     self.logger.debug("schema from %s %s/%s",
                                       source,
@@ -40,18 +43,12 @@ class SchemaService(object):
                                       self.schema_id)
                 return schema
 
-            # get from cache
-            #schema = SchemaService.cache.get(self.es_index)
-            #if debug_schema("cache"):
-            #    return schema
             schema = None
-            try:
-                schema = DocumentService(self.tenant_id, self.context).get_by_key("schema", {"id": SCHEMA_SCHEMA_ID})
-                if debug_schema("database"):
-                    schema["properties"] = json.loads(schema["properties"])
-                    return schema
-            except:
-                pass
+
+            schema = DocumentService(self.tenant_id, self.context).get_by_path(path(SCHEMAS_PATH, self.schema_id))
+            if debug_schema("database"):
+                schema["properties"] = json.loads(schema["properties"])
+                return schema
 
             # get from constants if it is the schema schema (because it may not be indexed yet)
             if self.schema_id == SCHEMA_SCHEMA_ID and schema is None:
@@ -63,12 +60,15 @@ class SchemaService(object):
                 return schema
 
             debug_schema("none")
+            raise Exception("Schema not registered yet", self.tenant_id, self.schema_id)
 
-        document = get_cache().get(key="schema_{}|{}".format(self.tenant_id, self.schema_id),
-                               createfunc=__get_document_no_cache)
+        key = "schema_{}|{}".format(self.tenant_id, self.schema_id)
+        document = get_cache().get(key=key,
+                                   createfunc=__get_document_no_cache)
+        print(self.tenant_id, self.schema_id, pformat(document))
 
         if document==None:
-            raise Exception("Cannot find schema definition", self.tenant_id, self.schema_id)
+            raise Exception("Cannot find schema definition", key)
 
         return document
 
@@ -104,7 +104,7 @@ class SchemaService(object):
         self.logger.info("Registering schema %s/%s",
                          self.tenant_id,
                          self.schema_id)
-        self.logger.debug(pformat(properties))
+        self.logger.debug("=> properties: %s", pformat(properties))
 
         # Create ES index
         mapping_properties = self.__make_es_mapping(properties)
@@ -138,4 +138,4 @@ class SchemaService(object):
                     del mapping_properties[prop][key]
 
         return mapping_properties
-SchemaService.cache = {}
+

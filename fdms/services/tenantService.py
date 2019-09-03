@@ -14,7 +14,19 @@ from .constants import (
     USER_SCHEMA_ID,
     FOLDER_SCHEMA_ID,
     ROOT_SCHEMA_ID,
-    TENANT_SCHEMA_ID)
+    TENANT_SCHEMA_ID,
+    META_PATH,
+    SCHEMAS_PATH,
+    USERS_PATH,
+    GROUPS_PATH,
+    TENANTS_PATH,
+    META_PATH_SEGMENT,
+    SCHEMAS_PATH_SEGMENT,
+    USERS_PATH_SEGMENT,
+    GROUPS_PATH_SEGMENT,
+    TENANTS_PATH_SEGMENT,
+    ADMIN
+    )
 
 class TenantService(object):
     """ Class managing tenants """
@@ -29,9 +41,9 @@ class TenantService(object):
         # create data index
         self.es_service.create_data_index(self.tenant_id, drop)
 
-        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context, refresh="wait_for").register(SCHEMA_SCHEMA_DEFINITION, drop, persist=False)
+        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, drop, persist=False)
         
-        document_service = DocumentService(self.tenant_id, self.context, refresh="wait_for")
+        document_service = DocumentService(self.tenant_id, self.context)
         # create root document
         root = document_service.create_root()
 
@@ -43,26 +55,26 @@ class TenantService(object):
         SchemaService(self.tenant_id, GROUP_SCHEMA_ID, self.context).register(GROUP_SCHEMA_DEFINITION, drop)
 
         # Create folders
-        document_service.create(FOLDER_SCHEMA_ID, parent="/", path_segment="meta")
-        document_service.create(FOLDER_SCHEMA_ID, parent="/meta", path_segment="users")
-        document_service.create(FOLDER_SCHEMA_ID, parent="/meta", path_segment="groups")
+        document_service.create(FOLDER_SCHEMA_ID, parent="/", path_segment=META_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT)
         # create base users
-        document_service.create(USER_SCHEMA_ID, parent="/meta/users", path_segment="admin", data={
+        document_service.create(USER_SCHEMA_ID, parent=USERS_PATH, path_segment=ADMIN, data={
             "is_tenant_admin": True
             })
         # create base groups
-        document_service.create(GROUP_SCHEMA_ID, parent="/meta/groups", path_segment="admin", data={
-            "users": ["admin"]
+        document_service.create(GROUP_SCHEMA_ID, parent=GROUPS_PATH, path_segment=ADMIN, data={
+            "users": [ADMIN]
             })
         # MAster tenant specifics
         if self.tenant_id == TENANT_MASTER_ID:
             SchemaService(self.tenant_id, TENANT_SCHEMA_ID, self.context).register(TENANT_SCHEMA_DEFINITION, drop)
-            document_service.create(FOLDER_SCHEMA_ID, parent="/meta", path_segment="tenants")
+            document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=TENANTS_PATH_SEGMENT)
 
 
         # Register tenant in tenant master
         fdms_document_service = DocumentService(TENANT_MASTER_ID, self.context, refresh="wait_for")
-        fdms_document_service.create(TENANT_SCHEMA_ID, parent="/meta/tenants", path_segment=self.tenant_id)
+        fdms_document_service.create(TENANT_SCHEMA_ID, parent=TENANTS_PATH, path_segment=self.tenant_id)
 
     def delete(self, drop=False):
         """ Delete tenant """

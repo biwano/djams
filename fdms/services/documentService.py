@@ -79,9 +79,19 @@ class DocumentService(object):
         doc = self.get_child_by_path_segment(doc, path_segment)
         return self.es_service.delete(doc)
 
+    def contextify(self, doc):
+        if doc:
+            for doc_ace in doc[ACL]:
+                for context_ace in self.context.acl:
+                    if doc_ace.startswith(context_ace):
+                        return doc
+        return None
+
     def get_by_path(self, path, with_context=True):
-        query = as_term_filter({PATH: path, IS_VERSION: False})
-        return self.get_one(query, with_context=with_context)
+        doc = self.es_service.get_by_path_and_version(self.tenant_id, path)
+        doc = self.contextify(doc)
+
+        return doc
 
     def get_by_uuid(self, uuid, with_context=True):
         query = as_term_filter({DOCUMENT_UUID: uuid, IS_VERSION: False})
