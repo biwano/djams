@@ -59,12 +59,11 @@ class DocumentService(object):
         hit = self.es_service.get_one(self.tenant_id, query=query)
         return hit
 
-#    def get_root(self, with_context=True):
-#        query = as_term_filter({"is_root": True, "schema_id": "root", "id": "root", "is_version": False})
-#        return self.get_one(query, with_context=with_context)
+    def get_root(self, with_context=True):
+        return self.get_by_path("/", with_context=with_context)
 
-#    def get_root_uuid(self):
-#        return self._get_root()["document_uuid"]
+    def get_root_uuid(self, with_context=True):
+        return self._get_root(with_context=with_context)[DOCUMENT_UUID]
 
     def get_child_by_path_segment(self, doc, path_segment, with_context=True):
         """ Checks if a key exists without authorization check"""
@@ -121,10 +120,11 @@ class DocumentService(object):
 
     def create(self, schema_id, parent, path_segment, data={}, is_acl_inherited=True, local_acl=None):
         """ Creates a document """
-        self.logger.debug("Creating document in schema %s/%s : %s",
-                          self.tenant_id,
-                          schema_id,
-                          pformat(data))
+        self.logger.info("Creating document %s.%s: %s",
+                         self.tenant_id,
+                         schema_id,
+                         path_segment)
+        self.logger.debug(" => data: %s", pformat(data))
 
         uuid = uuid4().hex
 

@@ -7,9 +7,11 @@ from .constants import (
     SEARCH_MAPPING_BASE,
     SCHEMA_SCHEMA_DEFINITION_DOCUMENT,
     ROOT_SCHEMA_DEFINITION_DOCUMENT,
+    FOLDER_SCHEMA_DEFINITION_DOCUMENT,
     FDMS_MAPPING_KEYS,
     SCHEMA_SCHEMA_ID,
     ROOT_SCHEMA_ID,
+    FOLDER_SCHEMA_ID,
     SCHEMAS_PATH)
 from .esService import EsService
 from .cacheService import get_cache
@@ -32,10 +34,11 @@ class SchemaService(object):
     def __get_document(self):
         """ Returns the document containg the schema """
         def __get_document_no_cache():
-            
+
             from .documentService import DocumentService
-            def debug_schema(source):
-                
+            schema = None
+
+            def debug_schema(schema, source):
                 if schema:
                     self.logger.debug("schema from %s %s/%s",
                                       source,
@@ -43,31 +46,34 @@ class SchemaService(object):
                                       self.schema_id)
                 return schema
 
-            schema = None
+            def get_from_static_definition(schema, schema_id, schema_definition):
+                if self.schema_id == schema_id and schema is None:
+                    schema = schema_definition
+                return debug_schema(schema, "static definition")
+
 
             schema = DocumentService(self.tenant_id, self.context).get_by_path(path(SCHEMAS_PATH, self.schema_id))
-            if debug_schema("database"):
+            if debug_schema(schema, "database"):
                 schema["properties"] = json.loads(schema["properties"])
                 return schema
 
-            # get from constants if it is the schema schema (because it may not be indexed yet)
-            if self.schema_id == SCHEMA_SCHEMA_ID and schema is None:
-                schema = SCHEMA_SCHEMA_DEFINITION_DOCUMENT
-            # get from constants if it is the root schema (because it can exist as a virtual schema)
-            if self.schema_id == ROOT_SCHEMA_ID and schema is None:
-                schema = ROOT_SCHEMA_DEFINITION_DOCUMENT
-            if debug_schema("static definition"):
+            schema = get_from_static_definition(schema, SCHEMA_SCHEMA_ID, SCHEMA_SCHEMA_DEFINITION_DOCUMENT)
+            if schema:
                 return schema
-
-            debug_schema("none")
+            schema = get_from_static_definition(schema, ROOT_SCHEMA_ID, ROOT_SCHEMA_DEFINITION_DOCUMENT)
+            if schema:
+                return schema
+            schema = get_from_static_definition(schema, FOLDER_SCHEMA_ID, FOLDER_SCHEMA_DEFINITION_DOCUMENT)
+            if schema:
+                return schema
+            
             raise Exception("Schema not registered yet", self.tenant_id, self.schema_id)
 
         key = "schema_{}|{}".format(self.tenant_id, self.schema_id)
         document = get_cache().get(key=key,
                                    createfunc=__get_document_no_cache)
-        print(self.tenant_id, self.schema_id, pformat(document))
 
-        if document==None:
+        if document == None:
             raise Exception("Cannot find schema definition", key)
 
         return document
@@ -86,18 +92,6 @@ class SchemaService(object):
         return aliases
 
 
-    """
-    def get_primary_key(self):
-        properties = self.get_properties()
-        primary_key = []
-        for prop in properties:
-            if properties[prop].get("key") is not None:
-                primary_key.append(prop)
-        if not primary_key:
-            primary_key = [DOCUMENT_UUID]
-        return primary_key
-    """
-
     def register(self, properties, drop=False, persist=True):
         """ Register a schema """
         from .documentService import DocumentService
@@ -114,7 +108,7 @@ class SchemaService(object):
         if persist:
             schema_doc = {"properties": json.dumps(properties)}
             document_service = DocumentService(self.tenant_id, self.context, refresh=self.refresh)
-            document_service.create(schema_id=SCHEMA_SCHEMA_ID, parent="/", path_segment=self.schema_id, data=schema_doc)
+            document_service.create(schema_id=SCHEMA_SCHEMA_ID, parent=SCHEMAS_PATH, path_segment=self.schema_id, data=schema_doc)
 
 
     def delete(self):

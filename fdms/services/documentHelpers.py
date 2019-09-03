@@ -27,13 +27,8 @@ def path(*args):
         if arg.endswith("/"):
             arg = arg[-1:]
         return arg
-    print("---")
-    print(args)
     args = [sanitize(arg) for arg in args]
-    print(args)
     args = list(filter(lambda arg: len(arg) > 0, args))
-    print(args)
-    print("---")
     return "/{}".format("/".join(args))
 
 

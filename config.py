@@ -2,10 +2,15 @@ from fdms import CONFIG
 
 CONFIG.update({
     "LOGGING" : {
-        "SchemaService": {"level": "DEBUG"},
+        "SchemaService": {"level": "INFO"},
         "DocumentService": {"level": "INFO"},
-        "EsService": {"level": "DEBUG"},
+        "EsService": {"level": "WARNING"},
         "FlaskEs": {"level": "INFO"},
-        "AuthService": {"level": "DEBUG"},
+        "AuthService": {"level": "INFO"},
+        "elasticsearch": {"level": "WARNING"},
+        "werkzeug": {"level": "WARNING"},
+    },
+    "CACHE": {
+        'cache.type': 'memory'
     }
 })

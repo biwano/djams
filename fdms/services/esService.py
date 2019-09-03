@@ -106,6 +106,7 @@ class EsService(object):
         response = self.es.get(index=index_name, id=id, ignore=404)
         self.logger.debug("Get by id: %s", id)
         if "found" in response and not response.get("found"):
+            self.logger.debug("Not found")
             return None
         self.logger.debug("Found: %s", pformat(response))
         doc = response["_source"]
@@ -201,14 +202,14 @@ class EsService(object):
             raise Exception("Document already exists {} ({}|{})".format(doc[PATH_HASH], doc[PATH], doc[VERSION]))
 
         index_name = self.get_data_index_name(doc[TENANT_ID])
-        self.logger.debug("Persisting document %s:%s|%s (%s) refresh = %s %s ",
-                          index_name,
-                          doc[PATH],
-                          doc[VERSION],
-                          doc[PATH_HASH],
-                          self.refresh,
-                          pformat(doc)
-                          )
+        self.logger.info("Persisting document %s:%s|%s (%s) refresh = %s",
+                         index_name,
+                         doc[PATH],
+                         doc[VERSION],
+                         doc[PATH_HASH],
+                         self.refresh
+                         )
+        self.logger.debug(" => %s ",pformat(db_doc))
 
         self.es.index(index=index_name, id=doc[PATH_HASH], body=doc, op_type="create")
         return self.index(doc, parent)

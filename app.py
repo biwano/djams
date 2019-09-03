@@ -7,11 +7,17 @@ from config import CONFIG
 
 
 # setting up logging
+logformat = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.INFO, format=logformat)
+
 for clazz in fdms.CONFIG.get("LOGGING"):
     logger = logging.getLogger(clazz)
     level = fdms.CONFIG.get("LOGGING").get(clazz).get("level")
     logger.setLevel(getattr(logging, level))
-    logger.addHandler(logging.StreamHandler())
+    #handler = logging.StreamHandler()
+    #formatter = logging.Formatter(logformat)
+    #handler.setFormatter(formatter)
+    #logger.addHandler(handler)
 
 
 # Creating app

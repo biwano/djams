@@ -1,4 +1,5 @@
 """ Contains the class managing tenants """
+import logging
 from . import SchemaService
 from .esService import EsService
 from .documentService import DocumentService
@@ -34,30 +35,34 @@ class TenantService(object):
         self.tenant_id = tenant_id
         self.es_service = EsService()
         self.context = context
-        
+        self.logger = logging.getLogger(type(self).__name__)
+
 
     def create(self, drop=False):
         """ Creates a tenant """
         # create data index
+        self.logger.info("Creating tenant %s drop=%s", self.tenant_id, drop)
         self.es_service.create_data_index(self.tenant_id, drop)
 
         SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, drop, persist=False)
+        SchemaService(self.tenant_id, FOLDER_SCHEMA_ID, self.context).register(FOLDER_SCHEMA_DEFINITION, drop, persist=False)
         
         document_service = DocumentService(self.tenant_id, self.context)
         # create root document
         root = document_service.create_root()
+        # Create folders
+        document_service.create(FOLDER_SCHEMA_ID, parent="/", path_segment=META_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=SCHEMAS_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT)
 
         # create base search indexes
         SchemaService(self.tenant_id, SCHEMA_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, drop)
-        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, drop=False)
+        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, drop)
         SchemaService(self.tenant_id, FOLDER_SCHEMA_ID, self.context).register(FOLDER_SCHEMA_DEFINITION, drop)
         SchemaService(self.tenant_id, USER_SCHEMA_ID, self.context).register(USER_SCHEMA_DEFINITION, drop)
         SchemaService(self.tenant_id, GROUP_SCHEMA_ID, self.context).register(GROUP_SCHEMA_DEFINITION, drop)
 
-        # Create folders
-        document_service.create(FOLDER_SCHEMA_ID, parent="/", path_segment=META_PATH_SEGMENT)
-        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT)
-        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT)
         # create base users
         document_service.create(USER_SCHEMA_ID, parent=USERS_PATH, path_segment=ADMIN, data={
             "is_tenant_admin": True

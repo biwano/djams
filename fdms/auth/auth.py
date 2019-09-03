@@ -38,7 +38,6 @@ class AuthService(fdms.RequestHandler):
 
         try:
             self.logger.debug("Trying authentication")
-            print(pformat(self.logger))
             for method in app.config["AUTHENTICATION"]:
                 func = getattr(self, "{}_auth".format(method["type"]))
                 user = func(method)
@@ -67,7 +66,6 @@ def is_fdms_admin(func):
     """Decorator for app admin authorized views"""
     @wraps(func)
     def admin_wrapper(**args):
-        print("a")
         """Wrapper"""
         service = AuthService()
         if service.context.is_fdms_admin():

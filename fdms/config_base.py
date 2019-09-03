@@ -13,7 +13,7 @@ CONFIG = {
         "DocumentService": {"level": "INFO"},
         "EsService": {"level": "INFO"},
         "FlaskEs": {"level": "INFO"},
-        "AuthService": {"level": "INFO"},
+        "AuthService": {"level": "INFO"}
     },
     "CACHE": {
             'cache.type': 'file',

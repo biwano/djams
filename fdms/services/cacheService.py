@@ -4,8 +4,10 @@ import logging
 from flask import current_app
 from pprint import pformat
 
+
 def get_cache():
-	return current_app.extensions["cache"]
+    return current_app.extensions["cache"]
+
 
 class FlaskCache(object):
     def __init__(self, app):
