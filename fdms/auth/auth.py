@@ -78,10 +78,10 @@ def is_fdms_admin(func):
 def is_logged_in(func):
     """Decorator for app logged_in authorized views"""
     @wraps(func)
-    def logged_in_wrapper():
+    def logged_in_wrapper(**args):
         """Wrapper"""
         AuthService()
-        return func()
+        return func(**args)
     return logged_in_wrapper
 
 def custom_401(error):

@@ -39,14 +39,26 @@ class RequestHandler(object):
     def get_request_tenant_id(self):
         tenant_id = self.get_request_attr("request_tenant_id")
         if not tenant_id:
-            user = self.context.user
-            tenant_id = user["tenant_id"]
-            wanted_tenant_id = request.args.get('tenant_id')
-            if wanted_tenant_id:
-                if self.context.is_fdms_admin():
-                    tenant_id = wanted_tenant_id
-                elif wanted_tenant_id != user["tenant_id"]:
-                    abort(403)
+            view_args_tenant_id = request.view_args.get('tenant_id')
+            args_tenant_id = request.args.get('wanted_tenant_id')
+            if view_args_tenant_id is not None and args_tenant_id is not None and view_args_tenant_id != args_tenant_id:
+                abort(400, "Incompatible arguments for tenant_id")
+                return
+
+            wanted_tenant_id = view_args_tenant_id
+            if wanted_tenant_id is None:
+                wanted_tenant_id = request.args.get('wanted_tenant_id')
+
+            if self.context.is_fdms_admin():
+                tenant_id = wanted_tenant_id
+            else:
+                user = self.context.user
+                if wanted_tenant_id is not None and wanted_tenant_id != user["tenant_id"]:
+                    abort(403, "Not authorized on this tenant")
+                    return
+                else:
+                    tenant_id = user["tenant_id"]
+
             self.set_request_attr("request_tenant_id", tenant_id)
 
         return tenant_id

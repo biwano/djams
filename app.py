@@ -55,25 +55,32 @@ def delete_tenant(tenant_id):
     return fdms.views.TenantsView().delete(tenant_id)
 
 # Search
-@app.route('/search', methods=["GET"])
+@app.route('/<tenant_id>/search', methods=["GET"])
 @fdms.auth.is_logged_in
-def search():
+def search(tenant_id):
     return fdms.views.DocumentsView().search()
 
 
-@app.route('/filter', methods=["GET"])
+@app.route('/<tenant_id>/filter', methods=["GET"])
 @fdms.auth.is_logged_in
-def filter():
+def filter(tenant_id):
     return fdms.views.DocumentsView().filter()
 
 # documents
+"""
 @app.route('/documents', methods=["POST"])
 @fdms.auth.is_logged_in
 def create():
     return fdms.views.DocumentsView().create()
+"""
 
+@app.route('/<tenant_id>/documents/', defaults={'doc': ''})
+@app.route('/<tenant_id>/documents/<path:doc>', methods=["GET"])
+@fdms.auth.is_logged_in
+def get(tenant_id, doc):
+    return fdms.views.DocumentsView().get(doc)
 
-@app.route('/user', methods=["GET"])
+@app.route('/auth', methods=["GET"])
 @fdms.auth.is_logged_in
 def get_user():
     return fdms.views.AuthView().get_logged_in_user()

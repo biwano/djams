@@ -3,6 +3,7 @@ import logging
 from . import SchemaService
 from .esService import EsService
 from .documentService import DocumentService
+from .documentHelpers import path
 from .constants import (
     SCHEMA_SCHEMA_DEFINITION,
     FOLDER_SCHEMA_DEFINITION,
@@ -16,6 +17,7 @@ from .constants import (
     FOLDER_SCHEMA_ID,
     ROOT_SCHEMA_ID,
     TENANT_SCHEMA_ID,
+    PATH_SEGMENT,
     META_PATH,
     SCHEMAS_PATH,
     USERS_PATH,
@@ -90,11 +92,11 @@ class TenantService(object):
 
         # Delete all schemas
         for schema in schemas:
-            SchemaService(self.tenant_id, schema["path_segment"], self.context).delete()
+            SchemaService(self.tenant_id, schema[PATH_SEGMENT], self.context).delete()
 
         self.es_service.delete_data_index(self.tenant_id)
 
         # Unregister tenant in tenant master
 
         document_service = DocumentService(TENANT_MASTER_ID, self.context, refresh="wait_for")
-        document_service.delete_child_by_id("/", self.tenant_id)
+        document_service.delete(path(TENANTS_PATH, self.tenant_id))

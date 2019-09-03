@@ -4,3 +4,4 @@ from .esService import FlaskEs
 from .tenantService import TenantService
 from .cacheService import FlaskCache, get_cache
 from .constants import TENANT_ACES
+from .documentHelpers import path

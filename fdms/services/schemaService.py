@@ -66,7 +66,7 @@ class SchemaService(object):
             schema = get_from_static_definition(schema, FOLDER_SCHEMA_ID, FOLDER_SCHEMA_DEFINITION_DOCUMENT)
             if schema:
                 return schema
-            
+
             raise Exception("Schema not registered yet", self.tenant_id, self.schema_id)
 
         key = "schema_{}|{}".format(self.tenant_id, self.schema_id)
@@ -113,7 +113,8 @@ class SchemaService(object):
 
     def delete(self):
         self.es_service.delete_index(self.es_index)
-        get_cache().remove_value(key=self.tenant_id + "|" + self.schema_id)
+        key = "schema_{}|{}".format(self.tenant_id, self.schema_id)
+        get_cache().remove_value(key=key)
 
     @classmethod
     def __make_es_mapping(cls, properties):

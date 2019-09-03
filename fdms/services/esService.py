@@ -71,7 +71,7 @@ class EsService(object):
         return filt
     """
 
-    def get_one_from_index(self, index_name, query):
+    def search_one_from_index(self, index_name, query):
         result = self.es.search(index=index_name, body={"query": query})
         hits = result["hits"]["hits"]
         self.logger.debug("Get one %s: %s", index_name, pformat(query))
@@ -84,9 +84,9 @@ class EsService(object):
             self.logger.debug("Not Found")
         return None
 
-    def get_one(self, tenant_id, query):
+    def search_one(self, tenant_id, query):
         index_name = self.get_all_search_index_name(tenant_id)
-        return self.get_one_from_index(index_name, query)
+        return self.search_one_from_index(index_name, query)
 
     """
     def get_one_from_data_index(self, tenant_id, query):

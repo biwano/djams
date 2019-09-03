@@ -24,6 +24,11 @@ class DocumentsView(fdms.RequestHandler):
                                                       query={"bool": {"filter": filt}})
         return self.send(docs)
 
+    def get(self, doc):
+        """Creates a new realm"""
+        doc = fdms.services.DocumentService(self.tenant_id, self.context).get_by_path(fdms.path(doc))
+        return self.send(doc)
+
     def create(self):
         """Creates a new realm"""
         body = self.get_body()
