@@ -108,6 +108,8 @@ class EsService(object):
         if "found" in response and not response.get("found"):
             self.logger.debug("Not found")
             return None
+        if "error" in response:
+            raise Exception("Query Error: ", response["reason"])
         self.logger.debug("Found: %s", pformat(response))
         doc = response["_source"]
         doc.update(json.loads(doc[DATA]))

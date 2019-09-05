@@ -63,8 +63,12 @@ class DocumentService(object):
                         return doc
         return None
 
-    def search(self, schema_id=None, query=None):
+    def search(self, query, schema_id=None):
         query = self.contextualize_query(query)
+        self.logger.debug("Searching %s.%s: %s",
+                          self.tenant_id,
+                          schema_id,
+                          pformat(query))
         docs = self.es_service.search(self.tenant_id, schema_id, query)
         return docs
 
@@ -74,9 +78,18 @@ class DocumentService(object):
         return hit
 
     def get_by_path(self, path):
+        self.logger.debug("Get by path %s: %s",
+                          self.tenant_id,
+                          path)
         doc = self.es_service.get_by_path_and_version(self.tenant_id, path)
         doc = self.contextify_doc(doc)
         return doc
+
+    def search_children(self, doc):
+        parent = self.doc_from_any(doc)
+        query = as_term_filter({PARENT_UUID: parent[DOCUMENT_UUID], IS_VERSION: False})
+        children = self.search(query)
+        return children
 
     def get_root(self):
         return self.get_by_path("/")

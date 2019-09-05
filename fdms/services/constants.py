@@ -41,10 +41,13 @@ IS_VERSION = "__is_version"
 VERSION = "__version"
 DATA = "__data"
 
+SHOW_IN_TREE = "__show_in_tree"
+
 # The FDMS mapping of the schema document type
 SCHEMA_SCHEMA_DEFINITION = {
     "properties": {"type": "text", "index": False},
-    "id": {"alias": PATH_SEGMENT}
+    "id": {"alias": PATH_SEGMENT},
+    "facets": {"type": "keyword"}
 }
 # The FDMS mapping of the user document type
 USER_SCHEMA_DEFINITION = {
@@ -72,10 +75,12 @@ SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
 }
 # The document containing the FDMS mapping of the folder document type
 ROOT_SCHEMA_DEFINITION_DOCUMENT = {
-    "properties": ROOT_SCHEMA_DEFINITION
+    "properties": ROOT_SCHEMA_DEFINITION,
+    "facets": [SHOW_IN_TREE]
 }
 FOLDER_SCHEMA_DEFINITION_DOCUMENT = {
-    "properties": FOLDER_SCHEMA_DEFINITION
+    "properties": FOLDER_SCHEMA_DEFINITION,
+    "facets": [SHOW_IN_TREE]
 }
 
 # Base properties

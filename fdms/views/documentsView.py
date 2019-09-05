@@ -7,12 +7,12 @@ class DocumentsView(fdms.RequestHandler):
         super().__init__()
         self.tenant_id = self.get_request_tenant_id()
         self.schema_id = self.get_request_schema_id()
-
+    """
     def search(self):
-        """Searches a document"""
         docs = fdms.services.DocumentService(self.tenant_id, self.context
                                              ).search(self.schema_id)
         return self.send(docs)
+    """
 
     def filter(self):
         """Searches a document"""
@@ -20,14 +20,24 @@ class DocumentsView(fdms.RequestHandler):
         for arg in request.args:
             filt.append({"term": {arg: request.args[arg]}})
         docs = fdms.services.DocumentService(self.tenant_id, self.context
-                                             ).search(self.schema_id,
-                                                      query={"bool": {"filter": filt}})
+                                             ).search(query={"bool": {"filter": filt}},
+                                                      schema_id=self.schema_id)
         return self.send(docs)
 
     def get(self, doc):
-        """Creates a new realm"""
-        doc = fdms.services.DocumentService(self.tenant_id, self.context).get_by_path(fdms.path(doc))
-        return self.send(doc)
+        """Get a document"""
+        path = fdms.path(doc)
+        modifiers = request.args.get('modifiers')
+        if modifiers is not None:
+            modifiers = modifiers.split(",")
+        else:
+            modifiers = []
+        document_service = fdms.services.DocumentService(self.tenant_id, self.context)
+        if "children" in modifiers:
+            result = document_service.search_children(path)
+        else:
+            result = document_service.get_by_path(path)
+        return self.send(result)
 
     def create(self):
         """Creates a new realm"""
