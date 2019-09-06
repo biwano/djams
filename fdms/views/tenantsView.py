@@ -10,7 +10,7 @@ class TenantsView(fdms.RequestHandler):
         """Creates a new realm"""
         body = self.get_body()
         tenant_id = body.get("tenant_id")
-        if len(tenant_id) == 0 or "|" in tenant_id:
+        if not tenant_id or "|" in tenant_id:
         	abort(400, "Invalid tenant ID")
         	return
         drop = body.get("drop")

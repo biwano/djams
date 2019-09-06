@@ -66,13 +66,6 @@ class EsService(object):
                 return cls.get_all_search_index_name(tenant_id)
         else:
             return cls.get_all_tenants_search_index_name()
-    """
-    def get_by_key_filter(self, key):
-        filt = []
-        for k in key:
-            filt.append({"term": {k: key[k]}})
-        return filt
-    """
 
     def search_one_from_index(self, index_name, query):
         result = self.es.search(index=index_name, body={"query": query})
@@ -90,19 +83,6 @@ class EsService(object):
     def search_one(self, tenant_id, query):
         index_name = self.get_all_search_index_name(tenant_id)
         return self.search_one_from_index(index_name, query)
-
-    """
-    def get_one_from_data_index(self, tenant_id, query):
-        index_name = self.get_data_index_name(tenant_id)
-        return self.get_one_from_index(index_name, query)
-
-    def get_by_uuid(self, tenant_id, uuid):
-        # Returns a document by uuid
-        query = as_term_filter({SELF_UUID: uuid,
-                                IS_VERSION: False})
-
-        return self.get_one_from_data_index(tenant_id, query)
-    """
 
     def get_by_id_from_data_index(self, tenant_id, id):
         index_name = self.get_data_index_name(tenant_id)
@@ -198,11 +178,8 @@ class EsService(object):
             doc[ACL] = ensure_aces(doc[LOCAL_ACL], parent[ACL])
         doc[PATH_HASH] = self.get_hash_from_path_and_version(doc[PATH], doc[VERSION])
         schema = get_schema(doc[TENANT_ID], doc[SCHEMA_ID], ADMIN_CONTEXT)
-        print(doc[SCHEMA_ID])
-        print(schema)
         if "facets" in schema:
             doc[FACETS] = schema["facets"]
-
 
     def create(self, doc, parent):
         """ Indexes a document in a data index """

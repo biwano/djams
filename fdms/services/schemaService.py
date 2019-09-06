@@ -54,7 +54,6 @@ class SchemaService(object):
         self.logger.debug("=> document: %s", pformat(document))
         properties = document["properties"]
         facets = document["facets"]
-        print(facets)
 
         # Create ES index
         mapping_properties = self.__make_es_mapping(properties)

@@ -90,9 +90,10 @@ class DocumentService(object):
         doc = self.contextify_doc(doc)
         return doc
 
-    def search_children(self, doc):
+    def search_children(self, doc, filter={}):
         parent = self.doc_from_any(doc)
-        query = as_term_filter({PARENT_UUID: parent[DOCUMENT_UUID], IS_VERSION: False})
+        filter.update({PARENT_UUID: parent[DOCUMENT_UUID], IS_VERSION: False})
+        query = as_term_filter(filter)
         children = self.search(query)
         return children
 
@@ -100,7 +101,7 @@ class DocumentService(object):
         return self.get_by_path("/")
 
     def get_root_uuid(self):
-        return self._get_root()[DOCUMENT_UUID]
+        return self.get_root()[DOCUMENT_UUID]
 
     def search_by_uuid(self, uuid):
         if len(uuid) != 32:
@@ -111,7 +112,7 @@ class DocumentService(object):
     def doc_from_any(self, thing):
         """ Returns a contextualized version of doc wether doc is an uuid, a path or a document"""
         if type(thing) == dict:
-            return self.contextify(thing)
+            return self.contextify_doc(thing)
         elif thing.startswith("/"):
             return self.get_by_path(thing)
         else:
@@ -141,6 +142,9 @@ class DocumentService(object):
         self.logger.debug(" => data: %s", pformat(data))
 
         uuid = uuid4().hex
+
+        if "|" in path_segment or "/" in path_segment:
+            raise Exception("Invalid path segment")
 
         # Compute Parent
         if parent is None:

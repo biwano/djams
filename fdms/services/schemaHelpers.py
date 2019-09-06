@@ -29,8 +29,8 @@ def get_schema(tenant_id, schema_id, context):
                              schema_id)
             return schema
 
-        def get_from_static_definition(schema, schema_id, schema_definition):
-            if schema_id == schema_id and schema is None:
+        def get_from_static_definition(schema, static_schema_id, schema_definition):
+            if schema_id == static_schema_id and schema is None:
                 schema = schema_definition
             return debug_schema(schema, "static definition")
 
