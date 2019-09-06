@@ -40,47 +40,65 @@ PATH_HASH = "__path_hash"
 IS_VERSION = "__is_version"
 VERSION = "__version"
 DATA = "__data"
+FACETS = "__facets"
 
-SHOW_IN_TREE = "__show_in_tree"
+FACET_SHOW_IN_TREE = "__show_in_tree"
+FACET_META = "__meta"
 
 # The FDMS mapping of the schema document type
-SCHEMA_SCHEMA_DEFINITION = {
+SCHEMA_SCHEMA_PROPERTIES = {
     "properties": {"type": "text", "index": False},
     "id": {"alias": PATH_SEGMENT},
     "facets": {"type": "keyword"}
 }
 # The FDMS mapping of the user document type
-USER_SCHEMA_DEFINITION = {
+USER_SCHEMA_PROPERTIES = {
     "is_tenant_admin": {"type": "boolean"},
     "id": {"alias": PATH_SEGMENT}
 }
 # The FDMS mapping of the group document type
-GROUP_SCHEMA_DEFINITION = {
+GROUP_SCHEMA_PROPERTIES = {
     "users": {"type": "keyword"},
     "id": {"alias": PATH_SEGMENT}
 }
+META_AND_FOLDER_FACETS = [FACET_SHOW_IN_TREE, FACET_META]
+META_FACETS = [FACET_META]
 # The FDMS mapping of the group document type
-FOLDER_SCHEMA_DEFINITION = {
+FOLDER_SCHEMA_PROPERTIES = {
 }
 # The FDMS mapping of the group document type
-ROOT_SCHEMA_DEFINITION = {
+ROOT_SCHEMA_PROPERTIES = {
 }
 # The FDMS mapping of the group document type
-TENANT_SCHEMA_DEFINITION = {
+TENANT_SCHEMA_PROPERTIES = {
     "id": {"alias": PATH_SEGMENT}
 }
 # The document containing the FDMS mapping of the schema document type
-SCHEMA_SCHEMA_DEFINITION_DOCUMENT = {
-    "properties": SCHEMA_SCHEMA_DEFINITION,
+SCHEMA_SCHEMA_DOCUMENT = {
+    "properties": SCHEMA_SCHEMA_PROPERTIES,
+    "facets": META_FACETS
+
 }
 # The document containing the FDMS mapping of the folder document type
-ROOT_SCHEMA_DEFINITION_DOCUMENT = {
-    "properties": ROOT_SCHEMA_DEFINITION,
-    "facets": [SHOW_IN_TREE]
+ROOT_SCHEMA_DOCUMENT = {
+    "properties": ROOT_SCHEMA_PROPERTIES,
+    "facets": META_AND_FOLDER_FACETS
 }
-FOLDER_SCHEMA_DEFINITION_DOCUMENT = {
-    "properties": FOLDER_SCHEMA_DEFINITION,
-    "facets": [SHOW_IN_TREE]
+FOLDER_SCHEMA_DOCUMENT = {
+    "properties": FOLDER_SCHEMA_PROPERTIES,
+    "facets": META_AND_FOLDER_FACETS
+}
+USER_SCHEMA_DOCUMENT = {
+    "properties": USER_SCHEMA_PROPERTIES,
+    "facets": META_FACETS
+}
+GROUP_SCHEMA_DOCUMENT = {
+    "properties": USER_SCHEMA_PROPERTIES,
+    "facets": META_FACETS
+}
+TENANT_SCHEMA_DOCUMENT = {
+    "properties": USER_SCHEMA_PROPERTIES,
+    "facets": META_FACETS
 }
 
 # Base properties
@@ -124,6 +142,7 @@ DATA_MAPPING.update({
 # Base mapping of the search indexes
 SEARCH_MAPPING_BASE = dict(PROPERTIES_BASE)
 SEARCH_MAPPING_BASE.update({
+    FACETS:  {"type": "keyword"}
 })
 
 # pure FDMS properties in mappings (must be removed for creating an ES mapping)
@@ -137,3 +156,5 @@ TENANT_ACES = ["group:{}:".format(ADMIN)]
 ACL_BASE = [
     "group:{}:rw".format(ADMIN),
 ]
+
+ADMIN_CONTEXT = "admin_context"

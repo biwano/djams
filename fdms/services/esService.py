@@ -19,9 +19,12 @@ from .constants import (
     ACL,
     LOCAL_ACL,
     DOCUMENT_UUID,
-    DATA
+    DATA,
+    FACETS,
+    ADMIN_CONTEXT
 )
 from .documentHelpers import ensure_aces, as_term_filter, parent_path
+from .schemaHelpers import get_schema
 import hashlib
 #es_service = None
 
@@ -194,6 +197,12 @@ class EsService(object):
                 doc[PATH] = "{}/{}".format(parent[PATH], doc[PATH_SEGMENT])
             doc[ACL] = ensure_aces(doc[LOCAL_ACL], parent[ACL])
         doc[PATH_HASH] = self.get_hash_from_path_and_version(doc[PATH], doc[VERSION])
+        schema = get_schema(doc[TENANT_ID], doc[SCHEMA_ID], ADMIN_CONTEXT)
+        print(doc[SCHEMA_ID])
+        print(schema)
+        if "facets" in schema:
+            doc[FACETS] = schema["facets"]
+
 
     def create(self, doc, parent):
         """ Indexes a document in a data index """
@@ -216,6 +225,8 @@ class EsService(object):
         self.es.index(index=index_name, id=doc[PATH_HASH], body=doc, op_type="create")
         return self.index(doc, parent)
 
+
+
     def index(self, doc, parent=None):
         """ Indexes a document in a search index """
         index_doc = copy.deepcopy(doc)
@@ -228,14 +239,15 @@ class EsService(object):
         self.update_document_computables(index_doc, parent)
 
         index_name = self.get_search_index_name(doc[TENANT_ID], doc[SCHEMA_ID])
-        self.logger.debug("Indexing document %s:%s|%s (%s) refresh = %s %s",
-                          index_name,
-                          doc[PATH],
-                          doc[VERSION],
-                          doc[PATH_HASH],
-                          self.refresh,
-                          pformat(index_doc)
-                          )
+
+        self.logger.info("Indexing document %s:%s|%s (%s) refresh = %s",
+                         index_name,
+                         doc[PATH],
+                         doc[VERSION],
+                         doc[PATH_HASH],
+                         self.refresh)
+        self.logger.debug(" => %s ",pformat(index_doc))
+
         self.es.index(index=index_name, id=index_doc[PATH_HASH], body=index_doc, refresh=self.refresh)
         return index_doc
 

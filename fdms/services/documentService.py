@@ -23,7 +23,8 @@ from .constants import (
     IS_VERSION,
     VERSION,
     DATA,
-    ROOT_SCHEMA_ID)
+    ROOT_SCHEMA_ID,
+    ADMIN_CONTEXT)
 from .esService import EsService
 from .schemaService import SchemaService
 from .documentHelpers import ensure_aces, as_term_filter
@@ -45,6 +46,8 @@ class DocumentService(object):
 
     def contextualize_query(self, query):
         """ Transforms a query so it returns only visible documents given the context """
+        if self.context == ADMIN_CONTEXT:
+            return query
         acl_filter = []
         for ace in self.context.acl:
             acl_filter.append({"prefix": {ACL: ace}})
@@ -56,6 +59,8 @@ class DocumentService(object):
 
     def contextify_doc(self, doc):
         """ Returns None if the context does not give visibility to the document """
+        if self.context == ADMIN_CONTEXT:
+            return doc
         if doc:
             for doc_ace in doc[ACL]:
                 for context_ace in self.context.acl:

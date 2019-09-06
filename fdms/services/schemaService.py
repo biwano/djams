@@ -5,17 +5,13 @@ import copy
 from pprint import pformat
 from .constants import (
     SEARCH_MAPPING_BASE,
-    SCHEMA_SCHEMA_DEFINITION_DOCUMENT,
-    ROOT_SCHEMA_DEFINITION_DOCUMENT,
-    FOLDER_SCHEMA_DEFINITION_DOCUMENT,
     FDMS_MAPPING_KEYS,
     SCHEMA_SCHEMA_ID,
-    ROOT_SCHEMA_ID,
-    FOLDER_SCHEMA_ID,
     SCHEMAS_PATH)
 from .esService import EsService
 from .cacheService import get_cache
 from .documentHelpers import path
+from .schemaHelpers import get_schema
 
 
 class SchemaService(object):
@@ -33,50 +29,7 @@ class SchemaService(object):
 
     def __get_document(self):
         """ Returns the document containg the schema """
-        def __get_document_no_cache():
-
-            from .documentService import DocumentService
-            schema = None
-
-            def debug_schema(schema, source):
-                if schema:
-                    self.logger.debug("schema from %s %s/%s",
-                                      source,
-                                      self.tenant_id,
-                                      self.schema_id)
-                return schema
-
-            def get_from_static_definition(schema, schema_id, schema_definition):
-                if self.schema_id == schema_id and schema is None:
-                    schema = schema_definition
-                return debug_schema(schema, "static definition")
-
-
-            schema = DocumentService(self.tenant_id, self.context).get_by_path(path(SCHEMAS_PATH, self.schema_id))
-            if debug_schema(schema, "database"):
-                schema["properties"] = json.loads(schema["properties"])
-                return schema
-
-            schema = get_from_static_definition(schema, SCHEMA_SCHEMA_ID, SCHEMA_SCHEMA_DEFINITION_DOCUMENT)
-            if schema:
-                return schema
-            schema = get_from_static_definition(schema, ROOT_SCHEMA_ID, ROOT_SCHEMA_DEFINITION_DOCUMENT)
-            if schema:
-                return schema
-            schema = get_from_static_definition(schema, FOLDER_SCHEMA_ID, FOLDER_SCHEMA_DEFINITION_DOCUMENT)
-            if schema:
-                return schema
-
-            raise Exception("Schema not registered yet", self.tenant_id, self.schema_id)
-
-        key = "schema_{}|{}".format(self.tenant_id, self.schema_id)
-        document = get_cache().get(key=key,
-                                   createfunc=__get_document_no_cache)
-
-        if document == None:
-            raise Exception("Cannot find schema definition", key)
-
-        return document
+        return get_schema(self.tenant_id, self.schema_id, self.context)
 
     def get_properties(self):
         """ return the schema properties definition """
@@ -92,13 +45,16 @@ class SchemaService(object):
         return aliases
 
 
-    def register(self, properties, drop=False, persist=True):
+    def register(self, document, drop=False, persist=True):
         """ Register a schema """
         from .documentService import DocumentService
         self.logger.info("Registering schema %s/%s",
                          self.tenant_id,
                          self.schema_id)
-        self.logger.debug("=> properties: %s", pformat(properties))
+        self.logger.debug("=> document: %s", pformat(document))
+        properties = document["properties"]
+        facets = document["facets"]
+        print(facets)
 
         # Create ES index
         mapping_properties = self.__make_es_mapping(properties)
@@ -106,7 +62,7 @@ class SchemaService(object):
 
         # Save the schema document*
         if persist:
-            schema_doc = {"properties": json.dumps(properties)}
+            schema_doc = {"properties": json.dumps(properties), "facets": facets}
             document_service = DocumentService(self.tenant_id, self.context, refresh=self.refresh)
             document_service.create(schema_id=SCHEMA_SCHEMA_ID, parent=SCHEMAS_PATH, path_segment=self.schema_id, data=schema_doc)
 

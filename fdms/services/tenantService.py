@@ -5,11 +5,12 @@ from .esService import EsService
 from .documentService import DocumentService
 from .documentHelpers import path
 from .constants import (
-    SCHEMA_SCHEMA_DEFINITION,
-    FOLDER_SCHEMA_DEFINITION,
-    USER_SCHEMA_DEFINITION,
-    GROUP_SCHEMA_DEFINITION,
-    TENANT_SCHEMA_DEFINITION,
+    ROOT_SCHEMA_DOCUMENT,
+    SCHEMA_SCHEMA_DOCUMENT,
+    FOLDER_SCHEMA_DOCUMENT,
+    USER_SCHEMA_DOCUMENT,
+    GROUP_SCHEMA_DOCUMENT,
+    TENANT_SCHEMA_DOCUMENT,
     TENANT_MASTER_ID,
     SCHEMA_SCHEMA_ID,
     GROUP_SCHEMA_ID,
@@ -46,8 +47,8 @@ class TenantService(object):
         self.logger.info("Creating tenant %s drop=%s", self.tenant_id, drop)
         self.es_service.create_data_index(self.tenant_id, drop)
 
-        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, drop, persist=False)
-        SchemaService(self.tenant_id, FOLDER_SCHEMA_ID, self.context).register(FOLDER_SCHEMA_DEFINITION, drop, persist=False)
+        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(ROOT_SCHEMA_DOCUMENT, drop=drop, persist=False)
+        SchemaService(self.tenant_id, FOLDER_SCHEMA_ID, self.context).register(FOLDER_SCHEMA_DOCUMENT,  drop=drop, persist=False)
         
         document_service = DocumentService(self.tenant_id, self.context)
         # create root document
@@ -60,11 +61,11 @@ class TenantService(object):
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT)
 
         # create base search indexes
-        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, False)
-        SchemaService(self.tenant_id, FOLDER_SCHEMA_ID, self.context).register(FOLDER_SCHEMA_DEFINITION, False)
-        SchemaService(self.tenant_id, SCHEMA_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DEFINITION, drop)
-        SchemaService(self.tenant_id, USER_SCHEMA_ID, self.context).register(USER_SCHEMA_DEFINITION, drop)
-        SchemaService(self.tenant_id, GROUP_SCHEMA_ID, self.context).register(GROUP_SCHEMA_DEFINITION, drop)
+        SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(ROOT_SCHEMA_DOCUMENT, drop=False)
+        SchemaService(self.tenant_id, FOLDER_SCHEMA_ID, self.context).register(FOLDER_SCHEMA_DOCUMENT, drop=False)
+        SchemaService(self.tenant_id, SCHEMA_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DOCUMENT, drop=drop)
+        SchemaService(self.tenant_id, USER_SCHEMA_ID, self.context).register(USER_SCHEMA_DOCUMENT, drop=drop)
+        SchemaService(self.tenant_id, GROUP_SCHEMA_ID, self.context).register(GROUP_SCHEMA_DOCUMENT, drop=drop)
 
         # create base users
         document_service.create(USER_SCHEMA_ID, parent=USERS_PATH, path_segment=ADMIN, data={
@@ -76,7 +77,7 @@ class TenantService(object):
             })
         # Master tenant specifics
         if self.tenant_id == TENANT_MASTER_ID:
-            SchemaService(self.tenant_id, TENANT_SCHEMA_ID, self.context).register(TENANT_SCHEMA_DEFINITION, drop)
+            SchemaService(self.tenant_id, TENANT_SCHEMA_ID, self.context).register(TENANT_SCHEMA_DOCUMENT, drop=drop)
             document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=TENANTS_PATH_SEGMENT)
 
 
