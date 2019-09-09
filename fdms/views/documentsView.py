@@ -33,10 +33,12 @@ class DocumentsView(fdms.RequestHandler):
             modifiers = modifiers.split(",")
         else:
             modifiers = []
+        print(modifiers)
         document_service = fdms.services.DocumentService(self.tenant_id, self.context)
         if "children" in modifiers:
             filt = {}
-            filt.update(request.args)
+            for i in request.args:
+                filt[i] = request.args[i]
             del filt["__modifiers"]
             result = document_service.search_children(path, filt)
         else:
