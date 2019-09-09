@@ -7,7 +7,6 @@ from elasticsearch import Elasticsearch
 from flask import current_app
 from .constants import (
     DATA_MAPPING,
-    IS_VERSION,
     VERSION,
     SELF_UUID,
     PARENT_UUID,
@@ -23,7 +22,7 @@ from .constants import (
     FACETS,
     ADMIN_CONTEXT
 )
-from .documentHelpers import ensure_aces, as_term_filter, parent_path
+from .documentHelpers import ensure_aces, parent_path
 from .schemaHelpers import get_schema
 import hashlib
 #es_service = None

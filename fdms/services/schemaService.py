@@ -61,7 +61,7 @@ class SchemaService(object):
 
         # Save the schema document*
         if persist:
-            schema_doc = {"properties": json.dumps(properties), "facets": facets}
+            schema_doc = {"properties": properties, "facets": facets}
             document_service = DocumentService(self.tenant_id, self.context, refresh=self.refresh)
             document_service.create(schema_id=SCHEMA_SCHEMA_ID, parent=SCHEMAS_PATH, path_segment=self.schema_id, data=schema_doc)
 
@@ -78,14 +78,21 @@ class SchemaService(object):
         mapping_properties.update(SEARCH_MAPPING_BASE)
 
         for prop in mapping_properties:
+            definition = mapping_properties[prop]
             # Populating aliases
-            if "alias" in mapping_properties[prop]:
+            if "alias" in definition:
                 alias = mapping_properties[prop]["alias"]
                 mapping_properties[prop] = mapping_properties[alias]
+
+            # Computing special types
+            if "type" in definition and definition["type"] == "json":
+                definition["type"] = "text"
+                definition["index"] = False
+
             # Removes specific FDMS Keys
             for key in FDMS_MAPPING_KEYS:
-                if key in mapping_properties[prop]:
-                    del mapping_properties[prop][key]
+                if key in definition:
+                    del definition[key]
 
         return mapping_properties
 

@@ -1,5 +1,6 @@
 """ Contains the class managing tenants """
 import logging
+import json
 from . import SchemaService
 from .esService import EsService
 from .documentService import DocumentService
@@ -11,6 +12,7 @@ from .constants import (
     USER_SCHEMA_DOCUMENT,
     GROUP_SCHEMA_DOCUMENT,
     TENANT_SCHEMA_DOCUMENT,
+    CONFIG_SCHEMA_DOCUMENT,
     TENANT_MASTER_ID,
     SCHEMA_SCHEMA_ID,
     GROUP_SCHEMA_ID,
@@ -18,6 +20,7 @@ from .constants import (
     FOLDER_SCHEMA_ID,
     ROOT_SCHEMA_ID,
     TENANT_SCHEMA_ID,
+    CONFIG_SCHEMA_ID,
     PATH_SEGMENT,
     META_PATH,
     SCHEMAS_PATH,
@@ -29,6 +32,13 @@ from .constants import (
     USERS_PATH_SEGMENT,
     GROUPS_PATH_SEGMENT,
     TENANTS_PATH_SEGMENT,
+    UI_PATH_SEGMENT,
+    UI_PATH,
+    UI_DOCUMENT_VIEWS_PATH,
+    UI_LIST_VIEWS_PATH,
+    UI_DOCUMENT_VIEWS_PATH_SEGMENT,
+    UI_LIST_VIEWS_PATH_SEGMENT,
+    DEFAULT_UI_CONFIG,
     ADMIN
     )
 
@@ -59,6 +69,10 @@ class TenantService(object):
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=SCHEMAS_PATH_SEGMENT)
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT)
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT)
+        # UI
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=UI_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=UI_PATH, path_segment=UI_DOCUMENT_VIEWS_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=UI_PATH, path_segment=UI_LIST_VIEWS_PATH_SEGMENT)
 
         # create base search indexes
         SchemaService(self.tenant_id, ROOT_SCHEMA_ID, self.context).register(ROOT_SCHEMA_DOCUMENT, drop=False)
@@ -66,6 +80,7 @@ class TenantService(object):
         SchemaService(self.tenant_id, SCHEMA_SCHEMA_ID, self.context).register(SCHEMA_SCHEMA_DOCUMENT, drop=drop)
         SchemaService(self.tenant_id, USER_SCHEMA_ID, self.context).register(USER_SCHEMA_DOCUMENT, drop=drop)
         SchemaService(self.tenant_id, GROUP_SCHEMA_ID, self.context).register(GROUP_SCHEMA_DOCUMENT, drop=drop)
+        SchemaService(self.tenant_id, CONFIG_SCHEMA_ID, self.context).register(CONFIG_SCHEMA_DOCUMENT, drop=drop)
 
         # create base users
         document_service.create(USER_SCHEMA_ID, parent=USERS_PATH, path_segment=ADMIN, data={
@@ -75,6 +90,20 @@ class TenantService(object):
         document_service.create(GROUP_SCHEMA_ID, parent=GROUPS_PATH, path_segment=ADMIN, data={
             "users": [ADMIN]
             })
+
+        # create config (schemas)
+        for key in DEFAULT_UI_CONFIG["views"]:
+            config = DEFAULT_UI_CONFIG["views"][key]
+            document_service.create(CONFIG_SCHEMA_ID, parent=UI_DOCUMENT_VIEWS_PATH, path_segment=key, data={
+                "config": config
+            })
+
+        for key in DEFAULT_UI_CONFIG["list_views"]:
+            config = DEFAULT_UI_CONFIG["list_views"][key]
+            document_service.create(CONFIG_SCHEMA_ID, parent=UI_LIST_VIEWS_PATH, path_segment=key, data={
+                "config": config
+            })
+
         # Master tenant specifics
         if self.tenant_id == TENANT_MASTER_ID:
             SchemaService(self.tenant_id, TENANT_SCHEMA_ID, self.context).register(TENANT_SCHEMA_DOCUMENT, drop=drop)

@@ -35,14 +35,15 @@ def get_schema(tenant_id, schema_id, context):
             return debug_schema(schema, "static definition")
 
 
-        schema = DocumentService(tenant_id, context).get_by_path(path(SCHEMAS_PATH, schema_id))
-        if debug_schema(schema, "database"):
-            schema["properties"] = json.loads(schema["properties"])
-            return schema
-
         schema = get_from_static_definition(schema, SCHEMA_SCHEMA_ID, SCHEMA_SCHEMA_DOCUMENT)
         if schema:
             return schema
+
+        schema = DocumentService(tenant_id, context).get_by_path(path(SCHEMAS_PATH, schema_id))
+        if debug_schema(schema, "database"):
+            #schema["properties"] = json.loads(schema["properties"])
+            return schema
+
         schema = get_from_static_definition(schema, ROOT_SCHEMA_ID, ROOT_SCHEMA_DOCUMENT)
         if schema:
             return schema

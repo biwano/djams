@@ -1,5 +1,4 @@
 """ Services shared contants """
-import json
 
 # Built in entries
 TENANT_MASTER_ID = "__root"
@@ -9,17 +8,28 @@ USER_SCHEMA_ID = "__user"
 FOLDER_SCHEMA_ID = "__folder"
 ROOT_SCHEMA_ID = "__root"
 TENANT_SCHEMA_ID = "__tenant"
+CONFIG_SCHEMA_ID = "__config"
+DEFAULT = "__default"
+VIEW_CONFIG = "__view_config"
+DOCUMENT_VIEWS_PATH_SEGMENT = "document_views"
+LIST_VIEWS_PATH_SEGMENT = "list_views"
 
 META_PATH_SEGMENT = "meta"
 USERS_PATH_SEGMENT = "users"
 GROUPS_PATH_SEGMENT = "groups"
 SCHEMAS_PATH_SEGMENT = "schemas"
 TENANTS_PATH_SEGMENT = "tenants"
+UI_PATH_SEGMENT = "ui"
+UI_DOCUMENT_VIEWS_PATH_SEGMENT = "views"
+UI_LIST_VIEWS_PATH_SEGMENT = "list_views"
 META_PATH = "/{}".format(META_PATH_SEGMENT)
 SCHEMAS_PATH = "{}/{}".format(META_PATH, SCHEMAS_PATH_SEGMENT)
 USERS_PATH = "{}/{}".format(META_PATH, USERS_PATH_SEGMENT)
 GROUPS_PATH = "{}/{}".format(META_PATH, GROUPS_PATH_SEGMENT)
 TENANTS_PATH = "{}/{}".format(META_PATH, TENANTS_PATH_SEGMENT)
+UI_PATH = "{}/{}".format(META_PATH, UI_PATH_SEGMENT)
+UI_DOCUMENT_VIEWS_PATH = "{}/{}".format(UI_PATH, UI_DOCUMENT_VIEWS_PATH_SEGMENT)
+UI_LIST_VIEWS_PATH = "{}/{}".format(UI_PATH, UI_LIST_VIEWS_PATH_SEGMENT)
 
 ADMIN = "admin"
 
@@ -47,9 +57,9 @@ FACET_META = "__meta"
 
 # The FDMS mapping of the schema document type
 SCHEMA_SCHEMA_PROPERTIES = {
-    "properties": {"type": "text", "index": False},
+    "properties": {"type": "json"},
     "id": {"alias": PATH_SEGMENT},
-    "facets": {"type": "keyword"}
+    "facets": {"type": "keyword"},
 }
 # The FDMS mapping of the user document type
 USER_SCHEMA_PROPERTIES = {
@@ -77,12 +87,11 @@ TENANT_SCHEMA_PROPERTIES = {
 SCHEMA_SCHEMA_DOCUMENT = {
     "properties": SCHEMA_SCHEMA_PROPERTIES,
     "facets": META_FACETS
-
 }
 # The document containing the FDMS mapping of the folder document type
 ROOT_SCHEMA_DOCUMENT = {
     "properties": ROOT_SCHEMA_PROPERTIES,
-    "facets": META_AND_FOLDER_FACETS
+    "facets": META_AND_FOLDER_FACETS,
 }
 FOLDER_SCHEMA_DOCUMENT = {
     "properties": FOLDER_SCHEMA_PROPERTIES,
@@ -98,6 +107,10 @@ GROUP_SCHEMA_DOCUMENT = {
 }
 TENANT_SCHEMA_DOCUMENT = {
     "properties": USER_SCHEMA_PROPERTIES,
+    "facets": META_FACETS
+}
+CONFIG_SCHEMA_DOCUMENT = {
+    "properties": {"config": {"type": "json"}},
     "facets": META_FACETS
 }
 
@@ -132,7 +145,9 @@ PROPERTIES_BASE = {
     # is_version: is this entry a document or a version
     IS_VERSION: {"type": "boolean"},
     # version: version of the entry (is None for documents)
-    VERSION: {"type": "keyword"}
+    VERSION: {"type": "keyword"},
+    # view_config: configuration to display this document
+    VIEW_CONFIG: {"type": "keyword"}
 }
 # Mapping of the data indexes
 DATA_MAPPING = dict(PROPERTIES_BASE)
@@ -158,3 +173,15 @@ ACL_BASE = [
 ]
 
 ADMIN_CONTEXT = "admin_context"
+
+DEFAULT_UI_CONFIG = {
+    "views": {
+        DEFAULT: {
+        }
+    },
+    "list_views": {
+        DEFAULT: {
+            "columns": [{ "label": "id", "attribute": "id" }]
+        },
+    }
+}

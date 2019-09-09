@@ -33,7 +33,6 @@ class DocumentsView(fdms.RequestHandler):
             modifiers = modifiers.split(",")
         else:
             modifiers = []
-        print(modifiers)
         document_service = fdms.services.DocumentService(self.tenant_id, self.context)
         if "children" in modifiers:
             filt = {}

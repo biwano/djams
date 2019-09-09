@@ -4,6 +4,7 @@ import datetime
 import json
 import copy
 import logging
+import json
 from pprint import pformat
 from .constants import (
     ACL_BASE,
@@ -22,6 +23,8 @@ from .constants import (
     PATH_HASH,
     IS_VERSION,
     VERSION,
+    VIEW_CONFIG,
+    DEFAULT,
     DATA,
     ROOT_SCHEMA_ID,
     ADMIN_CONTEXT)
@@ -75,11 +78,13 @@ class DocumentService(object):
                           schema_id,
                           pformat(query))
         docs = self.es_service.search(self.tenant_id, schema_id, query)
+        docs = [self.decode_data(doc) for doc in docs]
         return docs
 
     def search_one(self, query):
         query = self.contextualize_query(query)
         hit = self.es_service.search_one(self.tenant_id, query=query)
+        hit = self.decode_data(hit)
         return hit
 
     def get_by_path(self, path):
@@ -88,6 +93,7 @@ class DocumentService(object):
                           path)
         doc = self.es_service.get_by_path_and_version(self.tenant_id, path)
         doc = self.contextify_doc(doc)
+        doc = self.decode_data(doc)
         return doc
 
     def search_children(self, doc, filter={}):
@@ -122,6 +128,28 @@ class DocumentService(object):
         doc = self.doc_from_any(doc)
         return self.es_service.delete(doc)
 
+    def decode_data(self, doc):
+        if doc:
+            schemaService = SchemaService(doc[TENANT_ID], doc[SCHEMA_ID], self.context, self.refresh)
+            properties = schemaService.get_properties()
+            for prop in properties:
+                definition = properties[prop]
+                # Decode json
+                if "type" in definition and definition["type"] == "json" and prop in doc:
+                    doc[prop] = json.loads(doc[prop])
+        return doc
+
+    def encode_data(self, tenant_id, schema_id, data):
+        if data:
+            schemaService = SchemaService(tenant_id, schema_id, self.context, self.refresh)
+            properties = schemaService.get_properties()
+            for prop in properties:
+                definition = properties[prop]
+                # Encode json
+                if "type" in definition and definition["type"] == "json" and prop in data:
+                    data[prop] = json.dumps(data[prop])
+        return data
+
     def set_aliases_be(self, tenant_id, schema_id, source, destination):
         schemaService = SchemaService(tenant_id, schema_id, self.context, self.refresh)
         aliases = schemaService.get_aliases()
@@ -133,7 +161,7 @@ class DocumentService(object):
         self.set_aliases_be(tenant_id, schema_id, source, destination)
         self.set_aliases_be(tenant_id, schema_id, destination, destination)
 
-    def create(self, schema_id, parent, path_segment, data={}, is_acl_inherited=True, local_acl=None):
+    def create(self, schema_id, parent, path_segment, data={}, is_acl_inherited=True, local_acl=None, view_config=None):
         """ Creates a document """
         self.logger.info("Creating document %s.%s: %s",
                          self.tenant_id,
@@ -155,6 +183,9 @@ class DocumentService(object):
         else:
             parent = self.doc_from_any(parent)
             parent_uuid = parent[SELF_UUID]
+
+        if view_config is None:
+            view_config = DEFAULT
         # TODO: Check write access on parent
 
         # Ensure local acl
@@ -174,10 +205,12 @@ class DocumentService(object):
             PARENT_UUID: parent_uuid,
             PATH_SEGMENT: path_segment,
             IS_VERSION: False,
-            VERSION: None
+            VERSION: None,
+            VIEW_CONFIG: view_config
         }
         # Setting aliases
         self.set_aliases(self.tenant_id, schema_id, metadata, data)
+        self.encode_data(self.tenant_id, schema_id, data)
         # Computing doc
         data_doc = metadata
         data_doc[DATA] = json.dumps(data)
