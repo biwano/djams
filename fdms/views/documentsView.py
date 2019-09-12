@@ -28,11 +28,7 @@ class DocumentsView(fdms.RequestHandler):
     def get(self, doc):
         """Get a document"""
         path = fdms.path(doc)
-        modifiers = request.args.get('__modifiers')
-        if modifiers is not None:
-            modifiers = modifiers.split(",")
-        else:
-            modifiers = []
+        modifiers = self.get_request_param_array("__modifiers")
         document_service = fdms.services.DocumentService(self.tenant_id, self.context)
         if "children" in modifiers:
             filt = {}

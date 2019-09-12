@@ -9,10 +9,14 @@ FOLDER_SCHEMA_ID = "__folder"
 ROOT_SCHEMA_ID = "__root"
 TENANT_SCHEMA_ID = "__tenant"
 CONFIG_SCHEMA_ID = "__config"
-DEFAULT = "__default"
 VIEW_CONFIG = "__view_config"
+VIEW_DEFAULT = "__default"
+VIEW_DOCUMENT = "__document"
+VIEW_GROUP = "__group"
+VIEW_GROUPS_LIST = "__groups_list"
+VIEW_USER = "__user"
+VIEW_USERS_LIST = "__users_list"
 DOCUMENT_VIEWS_PATH_SEGMENT = "document_views"
-LIST_VIEWS_PATH_SEGMENT = "list_views"
 
 META_PATH_SEGMENT = "meta"
 USERS_PATH_SEGMENT = "users"
@@ -68,7 +72,7 @@ USER_SCHEMA_PROPERTIES = {
 }
 # The FDMS mapping of the group document type
 GROUP_SCHEMA_PROPERTIES = {
-    "users": {"type": "keyword"},
+    "users": {"type": "keyword", "list": "true"},
     "id": {"alias": PATH_SEGMENT}
 }
 META_AND_FOLDER_FACETS = [FACET_SHOW_IN_TREE, FACET_META]
@@ -161,7 +165,7 @@ SEARCH_MAPPING_BASE.update({
 })
 
 # pure FDMS properties in mappings (must be removed for creating an ES mapping)
-FDMS_MAPPING_KEYS = ["alias"]
+FDMS_MAPPING_KEYS = ["alias", "list"]
 
 # acl provided by the tenant service
 TENANT_ACES = ["group:{}:".format(ADMIN)]
@@ -176,12 +180,23 @@ ADMIN_CONTEXT = "admin_context"
 
 DEFAULT_UI_CONFIG = {
     "views": {
-        DEFAULT: {
-        }
-    },
-    "list_views": {
-        DEFAULT: {
-            "columns": [{ "label": "id", "attribute": "id" }]
+        VIEW_DEFAULT: {
+            "layout": [
+                {"type": "auto", "config": {"model": "__path_segment"}},
+                {"type": "children", "config": {"columns": [
+                    {"model": "__path_segment", "link": True},
+                    "__path_segment"
+                ]}}
+            ]
         },
+        VIEW_GROUPS_LIST: {
+            "layout": [
+                {"type": "auto", "config": {"model": "__path_segment"}},
+                {"type": "children", "config": {"columns": [
+                    {"model": "__path_segment", "link": True},
+                    {"model": "users", "link": True},
+                ]}}
+            ]
+        }
     }
 }

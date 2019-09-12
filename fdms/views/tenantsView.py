@@ -1,5 +1,5 @@
 """ Tenant views implementation """
-from flask import abort
+from flask import request, abort
 import fdms
 
 class TenantsView(fdms.RequestHandler):
@@ -19,6 +19,13 @@ class TenantsView(fdms.RequestHandler):
 
         return self.send_success()
 
+    def update(self, tenant_id):
+        """Creates a new realm"""
+        items = self.get_request_param_array("items")
+        fdms.services.TenantService(tenant_id, self.context).update(items)
+        return self.send_success()
+
+        return self.send_success()
     def delete(self, tenant_id):
         fdms.services.TenantService(tenant_id, self.context).delete()
         return self.send_success()

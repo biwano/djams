@@ -24,7 +24,6 @@ from .constants import (
     IS_VERSION,
     VERSION,
     VIEW_CONFIG,
-    DEFAULT,
     DATA,
     ROOT_SCHEMA_ID,
     ADMIN_CONTEXT)
@@ -184,9 +183,6 @@ class DocumentService(object):
             parent = self.doc_from_any(parent)
             parent_uuid = parent[SELF_UUID]
 
-        if view_config is None:
-            view_config = DEFAULT
-        # TODO: Check write access on parent
 
         # Ensure local acl
         local_acl = self.ensure_base_aces(local_acl)

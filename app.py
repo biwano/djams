@@ -54,6 +54,11 @@ def create_tenant():
 def delete_tenant(tenant_id):
     return fdms.views.TenantsView().delete(tenant_id)
 
+@app.route('/tenants/<tenant_id>', methods=["PUT"])
+@fdms.auth.is_fdms_admin
+def update_tenant(tenant_id):
+    return fdms.views.TenantsView().update(tenant_id)
+
 # Search
 @app.route('/<tenant_id>/search', methods=["GET"])
 @fdms.auth.is_logged_in
@@ -84,3 +89,8 @@ def get(tenant_id, doc):
 @fdms.auth.is_logged_in
 def get_user():
     return fdms.views.AuthView().get_logged_in_user()
+
+@app.route('/config', methods=["GET"])
+@fdms.auth.is_logged_in
+def get_config():
+    return fdms.views.ConfigView().get()

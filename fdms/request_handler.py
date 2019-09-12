@@ -69,6 +69,14 @@ class RequestHandler(object):
             schema_id = request.args.get('schema_id_id')
         return schema_id
 
+    def get_request_param_array(self, key):
+        items = request.args.get(key)
+        if items is not None:
+            items = items.split(",")
+        else:
+            items = []
+        return items
+
     def get_body(self):
         return request.json
 

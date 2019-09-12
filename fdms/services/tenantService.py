@@ -39,8 +39,10 @@ from .constants import (
     UI_DOCUMENT_VIEWS_PATH_SEGMENT,
     UI_LIST_VIEWS_PATH_SEGMENT,
     DEFAULT_UI_CONFIG,
-    ADMIN
-    )
+    ADMIN,
+    VIEW_USERS_LIST,
+    VIEW_GROUPS_LIST
+)
 
 class TenantService(object):
     """ Class managing tenants """
@@ -67,8 +69,8 @@ class TenantService(object):
         # Create folders
         document_service.create(FOLDER_SCHEMA_ID, parent="/", path_segment=META_PATH_SEGMENT)
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=SCHEMAS_PATH_SEGMENT)
-        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT)
-        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT, view_config=VIEW_USERS_LIST)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT, view_config=VIEW_GROUPS_LIST)
         # UI
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=UI_PATH_SEGMENT)
         document_service.create(FOLDER_SCHEMA_ID, parent=UI_PATH, path_segment=UI_DOCUMENT_VIEWS_PATH_SEGMENT)
@@ -97,12 +99,13 @@ class TenantService(object):
             document_service.create(CONFIG_SCHEMA_ID, parent=UI_DOCUMENT_VIEWS_PATH, path_segment=key, data={
                 "config": config
             })
-
+        """
         for key in DEFAULT_UI_CONFIG["list_views"]:
             config = DEFAULT_UI_CONFIG["list_views"][key]
             document_service.create(CONFIG_SCHEMA_ID, parent=UI_LIST_VIEWS_PATH, path_segment=key, data={
                 "config": config
             })
+        """
 
         # Master tenant specifics
         if self.tenant_id == TENANT_MASTER_ID:
@@ -113,6 +116,12 @@ class TenantService(object):
         # Register tenant in tenant master
         fdms_document_service = DocumentService(TENANT_MASTER_ID, self.context, refresh="wait_for")
         fdms_document_service.create(TENANT_SCHEMA_ID, parent=TENANTS_PATH, path_segment=self.tenant_id)
+
+    def update(self, items):
+        # TODO
+        pass
+        
+
 
 
     def delete(self, drop=False):
