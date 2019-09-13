@@ -171,19 +171,18 @@ DEFAULT_UI_CONFIG = {
     "views": {
         VIEW_DEFAULT: {
             "layout": [
-                {"type": "auto", "config": {"model": "__path_segment"}},
+                {"auto": "__path_segment"},
                 {"type": "children", "config": {"columns": [
-                    {"model": "__path_segment", "link": True},
-                    "__path_segment"
+                    {"auto": "__path_segment"}
                 ]}}
             ]
         },
         VIEW_GROUPS_FOLDER: {
             "layout": [
-                {"type": "auto", "config": {"model": "__path_segment"}},
+                {"auto": "__path_segment"},
                 {"type": "children", "config": {"columns": [
-                    {"type": "auto", "config": {"model": "__path_segment", "link": True}},
-                    {"type": "auto", "config": {"model": "users", "link": True}},
+                    {"auto": "__path_segment", "config": {"link": True}},
+                    {"auto": "users", "type": "user"},
                 ]}}
             ]
         }
