@@ -13,9 +13,9 @@ VIEW_CONFIG = "__view_config"
 VIEW_DEFAULT = "__default"
 VIEW_DOCUMENT = "__document"
 VIEW_GROUP = "__group"
-VIEW_GROUPS_LIST = "__groups_list"
+VIEW_GROUPS_FOLDER = "__groups_list"
 VIEW_USER = "__user"
-VIEW_USERS_LIST = "__users_list"
+VIEW_USERS_FOLDER = "__users_list"
 DOCUMENT_VIEWS_PATH_SEGMENT = "document_views"
 
 META_PATH_SEGMENT = "meta"
@@ -60,41 +60,24 @@ FACET_SHOW_IN_TREE = "__show_in_tree"
 FACET_META = "__meta"
 
 # The FDMS mapping of the schema document type
-SCHEMA_SCHEMA_PROPERTIES = {
-    "properties": {"type": "json"},
-    "id": {"alias": PATH_SEGMENT},
-    "facets": {"type": "keyword"},
-}
-# The FDMS mapping of the user document type
-USER_SCHEMA_PROPERTIES = {
-    "is_tenant_admin": {"type": "boolean"},
-    "id": {"alias": PATH_SEGMENT}
-}
-# The FDMS mapping of the group document type
-GROUP_SCHEMA_PROPERTIES = {
-    "users": {"type": "keyword", "list": "true"},
-    "id": {"alias": PATH_SEGMENT}
-}
 META_AND_FOLDER_FACETS = [FACET_SHOW_IN_TREE, FACET_META]
 META_FACETS = [FACET_META]
 # The FDMS mapping of the group document type
 FOLDER_SCHEMA_PROPERTIES = {
 }
 # The FDMS mapping of the group document type
-ROOT_SCHEMA_PROPERTIES = {
-}
-# The FDMS mapping of the group document type
-TENANT_SCHEMA_PROPERTIES = {
-    "id": {"alias": PATH_SEGMENT}
-}
 # The document containing the FDMS mapping of the schema document type
 SCHEMA_SCHEMA_DOCUMENT = {
-    "properties": SCHEMA_SCHEMA_PROPERTIES,
+    "properties": {
+        "properties": {"type": "json"},
+        "id": {"alias": PATH_SEGMENT},
+        "facets": {"type": "keyword"},
+    },
     "facets": META_FACETS
 }
 # The document containing the FDMS mapping of the folder document type
 ROOT_SCHEMA_DOCUMENT = {
-    "properties": ROOT_SCHEMA_PROPERTIES,
+    "properties": {},
     "facets": META_AND_FOLDER_FACETS,
 }
 FOLDER_SCHEMA_DOCUMENT = {
@@ -102,15 +85,21 @@ FOLDER_SCHEMA_DOCUMENT = {
     "facets": META_AND_FOLDER_FACETS
 }
 USER_SCHEMA_DOCUMENT = {
-    "properties": USER_SCHEMA_PROPERTIES,
+    "properties": {
+        "is_tenant_admin": {"type": "boolean"},
+        "id": {"alias": PATH_SEGMENT}
+    },
     "facets": META_FACETS
 }
 GROUP_SCHEMA_DOCUMENT = {
-    "properties": USER_SCHEMA_PROPERTIES,
+    "properties": {
+        "users": {"type": "keyword", "list": True},
+        "id": {"alias": PATH_SEGMENT}
+    },
     "facets": META_FACETS
 }
 TENANT_SCHEMA_DOCUMENT = {
-    "properties": USER_SCHEMA_PROPERTIES,
+    "properties": {"id": {"alias": PATH_SEGMENT}},
     "facets": META_FACETS
 }
 CONFIG_SCHEMA_DOCUMENT = {
@@ -189,12 +178,12 @@ DEFAULT_UI_CONFIG = {
                 ]}}
             ]
         },
-        VIEW_GROUPS_LIST: {
+        VIEW_GROUPS_FOLDER: {
             "layout": [
                 {"type": "auto", "config": {"model": "__path_segment"}},
                 {"type": "children", "config": {"columns": [
-                    {"model": "__path_segment", "link": True},
-                    {"model": "users", "link": True},
+                    {"type": "auto", "config": {"model": "__path_segment", "link": True}},
+                    {"type": "auto", "config": {"model": "users", "link": True}},
                 ]}}
             ]
         }

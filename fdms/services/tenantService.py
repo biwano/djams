@@ -40,8 +40,8 @@ from .constants import (
     UI_LIST_VIEWS_PATH_SEGMENT,
     DEFAULT_UI_CONFIG,
     ADMIN,
-    VIEW_USERS_LIST,
-    VIEW_GROUPS_LIST
+    VIEW_USERS_FOLDER,
+    VIEW_GROUPS_FOLDER
 )
 
 class TenantService(object):
@@ -69,8 +69,8 @@ class TenantService(object):
         # Create folders
         document_service.create(FOLDER_SCHEMA_ID, parent="/", path_segment=META_PATH_SEGMENT)
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=SCHEMAS_PATH_SEGMENT)
-        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT, view_config=VIEW_USERS_LIST)
-        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT, view_config=VIEW_GROUPS_LIST)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=USERS_PATH_SEGMENT, view_config=VIEW_USERS_FOLDER)
+        document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=GROUPS_PATH_SEGMENT, view_config=VIEW_GROUPS_FOLDER)
         # UI
         document_service.create(FOLDER_SCHEMA_ID, parent=META_PATH, path_segment=UI_PATH_SEGMENT)
         document_service.create(FOLDER_SCHEMA_ID, parent=UI_PATH, path_segment=UI_DOCUMENT_VIEWS_PATH_SEGMENT)
