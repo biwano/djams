@@ -41,7 +41,9 @@ from .constants import (
     DEFAULT_UI_CONFIG,
     ADMIN,
     VIEW_USERS_FOLDER,
-    VIEW_GROUPS_FOLDER
+    VIEW_GROUPS_FOLDER,
+    VIEW_USER,
+    VIEW_GROUP,
 )
 
 class TenantService(object):
@@ -87,11 +89,13 @@ class TenantService(object):
         # create base users
         document_service.create(USER_SCHEMA_ID, parent=USERS_PATH, path_segment=ADMIN, data={
             "is_tenant_admin": True
-            })
+            },
+            view_config=VIEW_USER)
         # create base groups
         document_service.create(GROUP_SCHEMA_ID, parent=GROUPS_PATH, path_segment=ADMIN, data={
             "users": [ADMIN]
-            })
+            },
+            view_config=VIEW_GROUP)
 
         # create config (schemas)
         for key in DEFAULT_UI_CONFIG["views"]:

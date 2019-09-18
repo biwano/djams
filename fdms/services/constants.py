@@ -72,6 +72,7 @@ SCHEMA_SCHEMA_DOCUMENT = {
         "properties": {"type": "json"},
         "id": {"alias": PATH_SEGMENT},
         "facets": {"type": "keyword"},
+        "default_view_config": {"type": "keyword"},
     },
     "facets": META_FACETS
 }
@@ -89,14 +90,16 @@ USER_SCHEMA_DOCUMENT = {
         "is_tenant_admin": {"type": "boolean"},
         "id": {"alias": PATH_SEGMENT}
     },
-    "facets": META_FACETS
+    "facets": META_FACETS,
+    "default_view_config": VIEW_USER
 }
 GROUP_SCHEMA_DOCUMENT = {
     "properties": {
         "users": {"type": "keyword", "list": True},
         "id": {"alias": PATH_SEGMENT}
     },
-    "facets": META_FACETS
+    "facets": META_FACETS,
+    "default_view_config": VIEW_GROUP
 }
 TENANT_SCHEMA_DOCUMENT = {
     "properties": {"id": {"alias": PATH_SEGMENT}},
@@ -173,16 +176,48 @@ DEFAULT_UI_CONFIG = {
             "layout": [
                 {"auto": "__path_segment"},
                 {"type": "children", "config": {"columns": [
-                    {"auto": "__path_segment"}
+                    {"auto": "__path_segment", "config": {"link": True}}
                 ]}}
             ]
         },
         VIEW_GROUPS_FOLDER: {
             "layout": [
-                {"auto": "__path_segment"},
                 {"type": "children", "config": {"columns": [
-                    {"auto": "__path_segment", "config": {"link": True}},
-                    {"auto": "users", "type": "user"},
+                    {"auto": "id", "config": {"link": True}},
+                    {"auto": "users", "config": {"icon": "user", "link": USERS_PATH + "/" + "{{model}}"}},
+                ]}}
+            ]
+        },
+        VIEW_USERS_FOLDER: {
+            "layout": [
+                {"type": "children", "config": {"columns": [
+                    {"auto": "id", "config": {"link": True}},
+                ]}}
+            ]
+        },
+        VIEW_USER: {
+            "layout": [
+                {"auto": "id"},
+                {"type": "list", "config": {
+                    "filter": {
+                        SCHEMA_ID: GROUP_SCHEMA_ID,
+                        "users": "{{doc.id}}"
+                    },
+                    "columns": [
+                    {"auto": "id", "config": {"icon": "users", "link": True, "label": "groups"}},
+                ]}}
+            ]
+        },
+        VIEW_GROUP: {
+            "layout": [
+                {"auto": "id"},
+                {"type": "list", "config": {
+                    "filter": {
+                        SCHEMA_ID: USER_SCHEMA_ID,
+                        "id": "{{doc.users}}"
+                    },
+                    "columns": [
+                    {"auto": "id", "config": {"icon": "user", "link": True, "label": "users"}},
                 ]}}
             ]
         }
