@@ -36,6 +36,7 @@ UI_DOCUMENT_VIEWS_PATH = "{}/{}".format(UI_PATH, UI_DOCUMENT_VIEWS_PATH_SEGMENT)
 UI_LIST_VIEWS_PATH = "{}/{}".format(UI_PATH, UI_LIST_VIEWS_PATH_SEGMENT)
 
 ADMIN = "admin"
+ADMINS = "admins"
 
 # Document keys
 TENANT_ID = "__tenant_id"
@@ -160,12 +161,12 @@ SEARCH_MAPPING_BASE.update({
 FDMS_MAPPING_KEYS = ["alias", "list"]
 
 # acl provided by the tenant service
-TENANT_ACES = ["group:{}:".format(ADMIN)]
+TENANT_ACES = ["group:{}:".format(ADMINS)]
 
 
 # base acl on all documents to enable all operations for the tenant and the administrators
 ACL_BASE = [
-    "group:{}:rw".format(ADMIN),
+    "group:{}:rw".format(ADMINS),
 ]
 
 ADMIN_CONTEXT = "admin_context"
