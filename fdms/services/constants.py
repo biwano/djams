@@ -16,6 +16,7 @@ VIEW_GROUP = "__group"
 VIEW_GROUPS_FOLDER = "__groups_list"
 VIEW_USER = "__user"
 VIEW_USERS_FOLDER = "__users_list"
+PERMISSIONS = "__permissions"
 DOCUMENT_VIEWS_PATH_SEGMENT = "document_views"
 
 META_PATH_SEGMENT = "meta"
@@ -37,6 +38,7 @@ UI_LIST_VIEWS_PATH = "{}/{}".format(UI_PATH, UI_LIST_VIEWS_PATH_SEGMENT)
 
 ADMIN = "admin"
 ADMINS = "admins"
+ALL_PERMISSIONS = "rw"
 
 # Document keys
 TENANT_ID = "__tenant_id"
@@ -56,6 +58,21 @@ IS_VERSION = "__is_version"
 VERSION = "__version"
 DATA = "__data"
 FACETS = "__facets"
+
+METADATA_FIELDS = [
+    TENANT_ID,
+    SCHEMA_ID,
+    LOCAL_ACL,
+    INHERIT_ACL,
+    CREATED,
+    UPDATED,
+    DOCUMENT_UUID,
+    SELF_UUID,
+    PARENT_UUID,
+    PATH_SEGMENT,
+    IS_VERSION,
+    VERSION,
+    VIEW_CONFIG]
 
 FACET_SHOW_IN_TREE = "__show_in_tree"
 FACET_META = "__meta"
@@ -89,6 +106,7 @@ FOLDER_SCHEMA_DOCUMENT = {
 USER_SCHEMA_DOCUMENT = {
     "properties": {
         "is_tenant_admin": {"type": "boolean"},
+        "email": {"type": "email"},
         "id": {"alias": PATH_SEGMENT}
     },
     "facets": META_FACETS,
@@ -166,7 +184,7 @@ TENANT_ACES = ["group:{}:".format(ADMINS)]
 
 # base acl on all documents to enable all operations for the tenant and the administrators
 ACL_BASE = [
-    "group:{}:rw".format(ADMINS),
+    "group:{}:{}".format(ADMINS, ALL_PERMISSIONS),
 ]
 
 ADMIN_CONTEXT = "admin_context"
@@ -199,6 +217,7 @@ DEFAULT_UI_CONFIG = {
         VIEW_USER: {
             "layout": [
                 {"auto": "id"},
+                {"auto": "email"},
                 {"type": "list", "config": {
                     "filter": {
                         SCHEMA_ID: GROUP_SCHEMA_ID,

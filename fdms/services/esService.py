@@ -196,9 +196,28 @@ class EsService(object):
                          doc[PATH_HASH],
                          self.refresh
                          )
-        self.logger.debug(" => %s ",pformat(db_doc))
+        self.logger.debug(" => %s ", pformat(doc))
 
         self.es.index(index=index_name, id=doc[PATH_HASH], body=doc, op_type="create")
+        return self.index(doc, parent)
+
+    def update(self, doc):
+        """ Indexes a document in a data index """
+        # computing path
+        parent = self.get_by_path(doc[TENANT_ID], parent_path(doc[PATH]))
+        self.update_document_computables(doc, parent)
+        
+        index_name = self.get_data_index_name(doc[TENANT_ID])
+        self.logger.info("Updating document %s:%s|%s (%s) refresh = %s",
+                         index_name,
+                         doc[PATH],
+                         doc[VERSION],
+                         doc[PATH_HASH],
+                         self.refresh
+                         )
+        self.logger.debug(" => %s ", pformat(doc))
+
+        self.es.update(index=index_name, id=doc[PATH_HASH], body={"doc": doc})
         return self.index(doc, parent)
 
 

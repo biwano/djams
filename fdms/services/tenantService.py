@@ -89,7 +89,8 @@ class TenantService(object):
 
         # create base users
         document_service.create(USER_SCHEMA_ID, parent=USERS_PATH, path_segment=ADMIN, data={
-            "is_tenant_admin": True
+            "is_tenant_admin": True,
+            "email": "root@localhost"
             },
             view_config=VIEW_USER)
         # create base groups

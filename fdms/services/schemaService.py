@@ -85,9 +85,12 @@ class SchemaService(object):
                 mapping_properties[prop] = mapping_properties[alias]
 
             # Computing special types
-            if "type" in definition and definition["type"] == "json":
-                definition["type"] = "text"
-                definition["index"] = False
+            if "type" in definition:
+                if definition["type"] == "json":
+                    definition["type"] = "text"
+                    definition["index"] = False
+                elif definition["type"] == "email":
+                    definition["type"] = "text"
 
             # Removes specific FDMS Keys
             for key in FDMS_MAPPING_KEYS:
