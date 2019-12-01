@@ -10,7 +10,7 @@ class AuthService(fdms.RequestHandler):
         super().__init__()
         self.authenticate()
 
-
+    """
     def cookie_auth(self, options):
         http_username = request.authorization["username"]
         tmp = http_username.split("|")
@@ -23,7 +23,8 @@ class AuthService(fdms.RequestHandler):
 
     def set_cookie(self, options):
         resp.set_cookie('userID', user)
-
+    """
+    
     def static_auth(self, options):
         http_username = request.authorization["username"]
         tmp = http_username.split("|")
@@ -38,6 +39,7 @@ class AuthService(fdms.RequestHandler):
 
         try:
             self.logger.debug("Trying authentication")
+            context = None
             for method in app.config["AUTHENTICATION"]:
                 func = getattr(self, "{}_auth".format(method["type"]))
                 user = func(method)

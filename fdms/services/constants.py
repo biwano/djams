@@ -12,10 +12,11 @@ CONFIG_SCHEMA_ID = "__config"
 VIEW_CONFIG = "__view_config"
 VIEW_DEFAULT = "__default"
 VIEW_DOCUMENT = "__document"
-VIEW_GROUP = "__group"
+VIEW_GROUP_DOCUMENT = "__group"
 VIEW_GROUPS_FOLDER = "__groups_list"
-VIEW_USER = "__user"
+VIEW_USER_DOCUMENT = "__user"
 VIEW_USERS_FOLDER = "__users_list"
+VIEW_CONFIG_DOCUMENT = "__config"
 PERMISSIONS = "__permissions"
 DOCUMENT_VIEWS_PATH_SEGMENT = "document_views"
 
@@ -110,7 +111,7 @@ USER_SCHEMA_DOCUMENT = {
         "id": {"alias": PATH_SEGMENT}
     },
     "facets": META_FACETS,
-    "default_view_config": VIEW_USER
+    "default_view_config": VIEW_USER_DOCUMENT
 }
 GROUP_SCHEMA_DOCUMENT = {
     "properties": {
@@ -118,7 +119,7 @@ GROUP_SCHEMA_DOCUMENT = {
         "id": {"alias": PATH_SEGMENT}
     },
     "facets": META_FACETS,
-    "default_view_config": VIEW_GROUP
+    "default_view_config": VIEW_GROUP_DOCUMENT
 }
 TENANT_SCHEMA_DOCUMENT = {
     "properties": {"id": {"alias": PATH_SEGMENT}},
@@ -194,6 +195,7 @@ DEFAULT_UI_CONFIG = {
         VIEW_DEFAULT: {
             "layout": [
                 {"auto": "__path_segment"},
+                {"type": "separator"},
                 {"type": "children", "config": {"columns": [
                     {"auto": "__path_segment", "config": {"link": True}}
                 ]}}
@@ -214,7 +216,7 @@ DEFAULT_UI_CONFIG = {
                 ]}}
             ]
         },
-        VIEW_USER: {
+        VIEW_USER_DOCUMENT: {
             "layout": [
                 {"auto": "id"},
                 {"auto": "email"},
@@ -228,7 +230,7 @@ DEFAULT_UI_CONFIG = {
                 ]}}
             ]
         },
-        VIEW_GROUP: {
+        VIEW_GROUP_DOCUMENT: {
             "layout": [
                 {"auto": "id"},
                 {"type": "list", "config": {
@@ -239,6 +241,12 @@ DEFAULT_UI_CONFIG = {
                     "columns": [
                     {"auto": "id", "config": {"icon": "user", "link": True, "label": "users"}},
                 ]}}
+            ]
+        },
+        VIEW_CONFIG_DOCUMENT: {
+            "layout": [
+                {"auto": "__path_segment"},
+                {"auto": "config"},
             ]
         }
     }

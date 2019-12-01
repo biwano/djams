@@ -43,8 +43,9 @@ from .constants import (
     ADMIN,
     VIEW_USERS_FOLDER,
     VIEW_GROUPS_FOLDER,
-    VIEW_USER,
-    VIEW_GROUP,
+    VIEW_USER_DOCUMENT,
+    VIEW_GROUP_DOCUMENT,
+    VIEW_CONFIG_DOCUMENT,
 )
 
 class TenantService(object):
@@ -92,19 +93,19 @@ class TenantService(object):
             "is_tenant_admin": True,
             "email": "root@localhost"
             },
-            view_config=VIEW_USER)
+            view_config=VIEW_USER_DOCUMENT)
         # create base groups
         document_service.create(GROUP_SCHEMA_ID, parent=GROUPS_PATH, path_segment=ADMINS, data={
             "users": [ADMIN]
             },
-            view_config=VIEW_GROUP)
+            view_config=VIEW_GROUP_DOCUMENT)
 
         # create config (schemas)
         for key in DEFAULT_UI_CONFIG["views"]:
             config = DEFAULT_UI_CONFIG["views"][key]
             document_service.create(CONFIG_SCHEMA_ID, parent=UI_DOCUMENT_VIEWS_PATH, path_segment=key, data={
                 "config": config
-            })
+            }, view_config=VIEW_CONFIG_DOCUMENT)
         """
         for key in DEFAULT_UI_CONFIG["list_views"]:
             config = DEFAULT_UI_CONFIG["list_views"][key]
