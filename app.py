@@ -72,12 +72,13 @@ def filter(tenant_id):
     return fdms.views.DocumentsView().filter()
 
 # documents
-@app.route('/<tenant_id>/documents/', defaults={'doc': ''})
+@app.route('/<tenant_id>/documents/', defaults={'doc': ''}, methods=["GET"])
 @app.route('/<tenant_id>/documents/<path:doc>', methods=["GET"])
 @fdms.auth.is_logged_in
 def get(tenant_id, doc):
     return fdms.views.DocumentsView().get(doc)
 
+@app.route('/<tenant_id>/documents/', defaults={'doc': ''}, methods=["PUT"])
 @app.route('/<tenant_id>/documents/<path:doc>', methods=["PUT"])
 @fdms.auth.is_logged_in
 def update(tenant_id, doc):

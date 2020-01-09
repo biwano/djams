@@ -193,60 +193,71 @@ ADMIN_CONTEXT = "admin_context"
 DEFAULT_UI_CONFIG = {
     "views": {
         VIEW_DEFAULT: {
-            "layout": [
+            "widgets": [
                 {"auto": "__path_segment"},
                 {"type": "separator"},
-                {"type": "children", "config": {"columns": [
-                    {"auto": "__path_segment", "config": {"link": True}}
-                ]}}
+                {"type": "children", "widgets": [
+                    {"auto": "__path_segment", "link": True}
+                ]}
             ]
         },
         VIEW_GROUPS_FOLDER: {
-            "layout": [
-                {"type": "children", "config": {"columns": [
-                    {"auto": "id", "config": {"link": True}},
-                    {"auto": "users", "config": {"icon": "user", "link": USERS_PATH + "/" + "{{model}}"}},
-                ]}}
+            "widgets": [
+                {"type": "children", "widgets": [
+                    {"auto": "id", "link": True},
+                    {"auto": "users", "icon": "user", "link": USERS_PATH + "/" + "{{model}}"},
+                ]}
             ]
         },
         VIEW_USERS_FOLDER: {
-            "layout": [
-                {"type": "children", "config": {"columns": [
-                    {"auto": "id", "config": {"link": True}},
-                ]}}
+            "widgets": [
+                {"type": "children", "widgets": [
+                    {"auto": "id", "link": True},
+                ]}
             ]
         },
         VIEW_USER_DOCUMENT: {
-            "layout": [
+            "widgets": [
                 {"auto": "id"},
                 {"auto": "email"},
-                {"type": "list", "config": {
+                {"type": "list", 
                     "filter": {
                         SCHEMA_ID: GROUP_SCHEMA_ID,
                         "users": "{{doc.id}}"
                     },
-                    "columns": [
-                    {"auto": "id", "config": {"icon": "users", "link": True, "label": "groups"}},
-                ]}}
+                    "widgets": [
+                    {"auto": "id", "icon": "users", "link": True, "label": "groups"},
+                ]}
             ]
         },
         VIEW_GROUP_DOCUMENT: {
-            "layout": [
-                {"auto": "id"},
-                {"type": "list", "config": {
-                    "filter": {
-                        SCHEMA_ID: USER_SCHEMA_ID,
-                        "id": "{{doc.users}}"
-                    },
-                    "columns": [
-                    {"auto": "id", "config": {"icon": "user", "link": True, "label": "users"}},
-                ]}}
+            "widgets": [
+                { "auto": "id"},
+                { "type": "list", 
+                  "filter": {
+                    SCHEMA_ID: USER_SCHEMA_ID,
+                    "id": "{{doc.users}}"
+                  },
+                  "widgets": [
+                  {"auto": "id", "icon": "user", "link": True, "label": "users"},
+                ]}
             ]
         },
         VIEW_CONFIG_DOCUMENT: {
-            "layout": [
+            "widgets": [
                 {"auto": "__path_segment"},
-                {"auto": "config"},
+                {"auto": "config", 
+                 "structure_templates": {
+                    "widgets": {
+                        "type": "array"
+                        "widgets": {
+                            "json"
+                        }
+                    }
+                 ],
+                 "structure": {
+                    "widgets": "widgets"
+                 }},
             ]
         }
     }
