@@ -249,12 +249,12 @@ DEFAULT_UI_CONFIG = {
                 {"auto": "config", 
                  "structure_templates": {
                     "widgets": {
-                        "type": "array"
+                        "type": "array",
                         "widgets": {
-                            "json"
+                            "type": "json"
                         }
                     }
-                 ],
+                 },
                  "structure": {
                     "widgets": "widgets"
                  }},
